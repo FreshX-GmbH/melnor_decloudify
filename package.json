@@ -1,0 +1,21 @@
+{
+  "name": "melnor-gateway",
+  "version": "1.0.0",
+  "description": "",
+  "main": "melnor.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kai Mosebach",
+  "dependencies": {
+    "async": "^3.1.0",
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "native-dns": "^0.7.0",
+    "node-static": "^0.7.11"
+  },
+  "license": "ISC",
+  "engines": {
+    "node": ">6"
+  }
+}
