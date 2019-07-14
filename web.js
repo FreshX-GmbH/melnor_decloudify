@@ -19,7 +19,7 @@ const wss = new WebSocket.Server({ noServer: true });
 const settings = require('./settings.json');
 
 const CMD_OFF = 0x000;
-const CMD_ON = 0x207;
+const CMD_ON = 0x307;
 
 let wsConnected = false;
 let online = false;
@@ -62,7 +62,7 @@ const server = http.createServer((req, res) => {
 		weblog.success('Device sent event ack.');
     		//wss.clients.forEach(function each(client) {
         	//	client.send(JSON.stringify(constructEvent('manual_sched', CMD_ON, 0)));
-        		// client.send(JSON.stringify({"event":"rev_request","data":"\"\"","channel":"7cec79f3056e"}));
+        		// client.send(JSON.stringify({"event":"rev_request","data":"\"\"","channel":settings.mac}));
 		//});
   		return res.end('OK');
 	}
@@ -88,10 +88,9 @@ wss.on('connection', function connection(ws) {
 		// Test if data contains subscribe request
        	    wslog.debug('new message from',client._socket.remoteAddress);
 //      	    if (client !== ws && client.readyState === WebSocket.OPEN) {
-		wslog.pending('Send ack to subscribe request');
-	//	client.send(JSON.stringify({"data": {"channel": "7cec79f3056e"}, "event": "pusher:subscribe"}));
-		client.send(JSON.stringify({"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"7cec79f3056e"}));
-		client.send(JSON.stringify({"event":"hash_key","data":"\"53f574cb08\"","channel":"7cec79f3056e"}));
+		wslog.pending('Received subscribe request. Sending ack.');
+		client.send(JSON.stringify({"event":"pusher_internal:subscription_succeeded","data":"{}","channel":settings.mac}));
+		client.send(JSON.stringify({"event":"hash_key","data":"\"53f574cb08\"","channel":settings.mac}));
 //      	    }
         });
     });
@@ -123,16 +122,14 @@ exports.start = function () {
 
 function constructEvent (typ, cmd, channel, min) {
   const ev = {
-      message: {
           event: typ,
 	  channel: settings.mac,
-    }
   }
   const buffer = Buffer.alloc(18);
   buffer.writeUInt16LE(cmd,2+2*channel);
   buffer.writeUInt16LE(parseInt(settings.valveId,16));
-  ev.message.data = `\"${buffer.toString('base64')}\"`;
-  console.log(ev);
+  ev.data = `\"${buffer.toString('base64')}\"`;
+  console.log(JSON.stringify(ev));
   return ev;
 }
 
