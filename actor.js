@@ -2,15 +2,38 @@
 
 const dns = require('./dnsTools');
 const web = require('./web');
+const { QLog, undefinedOrNull } = require('quanto-commons');
 
-const CMD_OFF = 0x000;
-const CMD_ON = 0x274;
-
-const settings = require('./settings.json');
-
-// GET /submit/?idhash=53f574cb08&message=ascii--Day0scheduleevnt--ack--null HTTP/1.1
+const log = QLog.scope('Global');
 
 // # cat | sed "s/.*{/{/" | tee /dev/stderr | sed "s/.*data.....//"| sed "s/.....channel.*//"
+
+// is that the ok?
+// GET /submit/?idhash=0000000000&message=bgXzeex8AAAdAAAAAAAAAAAAAAAAAA== HTTP/1.1
+// 0000000 6e 05 f3 79 ec 7c 00 00 1d 00 00 00 00 00 00 00 00 00
+
+// device -> raincloud (http)
+// GET /submit/?idhash=53f574cb08&message=ascii--Day0scheduleevnt--ack--null HTTP/1.1
+// answer from raincloud to device (WS)
+// {"event":"sched_day4","data":"\"IMQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"","channel":"7cec79f3056e"}
+// 0000000 20 c4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+// *
+// 0000130 00 00 00 00
+
+// GET /submit/?idhash=0000000000&message=bgXzeex8AABWAQAAAAAAAAAAAAAAAA==
+// State of the device
+// 0000000 6e 05 f3 79 ec 7c 00 00 56 01 00 00 00 00 00 00 00 00
+
+// /submit/?idhash=0000000000&message=ascii--manualctrlevnt--ack--null
+// Answer : 
+// {"event":"rev_request","data":"\"\"","channel":"7cec79f3056e"}
+
+
+// WS upgrade done ? what is the socket id ?
+// {"event":"pusher:connection_established","data":"{\"socket_id\":\"265216.826472\"}"}
+// {"data": {"channel": "7cec79f3056e"}, "event": "pusher:subscribe"}
+// {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"7cec79f3056e"}
+// {"event":"hash_key","data":"\"53f574cb08\"","channel":"7cec79f3056e"}
 
 // All channels OFF
 // {"event":"manual_sched","data":"\"IMQAAAAAAAAAAAAAAAAAAAAA\"","channel":"7cec79f3056e"}
@@ -50,33 +73,5 @@ const settings = require('./settings.json');
 // {"event":"manual_sched","data":"\"IMREAwAAAAAAAAAAAAAAAAAA\"","channel":"7cec79f3056e"}
 // 0000000 20 c4 44 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 
-
-
-
-
-
-
-
-function constructEvent (typ, cmd) {
-  const ev = {
-      message: {
-          event: typ,
-	  channel: settings.mac,
-    }
-  }
-
-  const buffer = Buffer.alloc(18);
-  const id = Buffer.alloc(2);
-  buffer.writeUInt16LE(parseInt(settings.valveId,16));
-  buffer.writeUInt16LE(ev, 2);
-  ev.message.data = `\"${buffer.toString('base64')}\"`;
-  console.log(ev);
-  return ev;
-}
-
-// constructEvent('manual_sched',CMD_OFF);
-// constructEvent('manual_sched',CMD_ON);
-
 dns.start();
 web.start();
-

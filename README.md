@@ -8,6 +8,10 @@ Our code provides a simple rest API which allows you to run the Water Timer comp
 
 Have fun ...
 
+# How does it work
+
+... details to follow
+
 # References
 
 Thanks goes to
@@ -19,8 +23,3 @@ https://hackaday.io/project/160193-raincloud-de-cloudifier
 For the DNS Spoofing and proxying
 
 https://peteris.rocks/blog/dns-proxy-server-in-node-js-with-ui/
-
-For lots of help with the WebSocket implementation
-
-https://hackernoon.com/implementing-a-websocket-server-with-node-js-d9b78ec5ffa8
-

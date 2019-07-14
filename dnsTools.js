@@ -4,6 +4,10 @@ const dns = require('native-dns');
 const async = require('async');
 const settings = require('./settings.json');
 
+const { QLog, undefinedOrNull } = require('quanto-commons');
+
+const log = QLog.scope('DNS');
+
 const dnsServer = dns.createServer();
 
 const authority = {
@@ -14,13 +18,13 @@ const authority = {
 
 const entries = [
   {
-    domain: "^x-wifiaquatimer.com.*",
+    domain: "^wifiaquatimer.com.*",
     records: [
       { type: "A", address: settings.myIP, ttl: 1800 }
     ]
   },
   {
-    domain: "^x-ws.pusherapp.com.*",
+    domain: "^ws.pusherapp.com.*",
     records: [
       { type: "A", address: settings.myIP, ttl: 1800 }
     ]
@@ -28,7 +32,6 @@ const entries = [
 ];
 
 const handleDNSRequest = function (request, response) {
-
   let f = [];
   request.question.forEach(question => {
     let entry = entries.filter(r => new RegExp(r.domain, 'i').exec(question.name));
@@ -37,10 +40,10 @@ const handleDNSRequest = function (request, response) {
         record.name = question.name;
         record.ttl = record.ttl || 1800;
         response.answer.push(dns[record.type](record));
-        console.log('DNS request from', request.address.address, 'for DNS', request.question[0].name, ' spoofing to => ', record.address);
+        log.debug('DNS request from', request.address.address, 'for DNS', request.question[0].name, ' spoofing to =>', record.address);
       });
     } else {
-      console.log('forwarding request from', request.address.address, 'for', request.question[0].name);
+      log.debug('forwarding request from', request.address.address, 'for', request.question[0].name);
       f.push(cb => proxy(question, response, cb));
     }
   });
@@ -50,7 +53,8 @@ const handleDNSRequest = function (request, response) {
 
 const proxy = function (question, response, cb) {
   question.type = 'A';
-  console.log('proxying', question);
+  log.debug('proxying', question);
+  log.debug('via', authority);
 
   const request = dns.Request({
     question, // forwarding the question
@@ -68,7 +72,7 @@ const proxy = function (question, response, cb) {
 }
 
 exports.start = function () {
-  dnsServer.on('listening', () => console.log('dnsServer listening on', dnsServer.address()));
+  dnsServer.on('listening', () => log.success('listening on', dnsServer.address().address, 'port', dnsServer.address().port));
   dnsServer.on('close', () => console.log('dnsServer closed', dnsServer.address()));
   dnsServer.on('error', (err, buff, req, res) => console.error(err.stack));
   dnsServer.on('socketError', (err, socket) => console.error(err));

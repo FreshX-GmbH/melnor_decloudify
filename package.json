@@ -12,10 +12,12 @@
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
     "native-dns": "^0.7.0",
-    "node-static": "^0.7.11"
+    "node-static": "^0.7.11",
+    "quanto-commons": "^1.0.46",
+    "ws": "^7.1.0"
   },
   "license": "ISC",
   "engines": {
-    "node": ">6"
+    "node": ">7"
   }
 }
