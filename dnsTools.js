@@ -8,6 +8,8 @@ const { QLog, undefinedOrNull } = require('quanto-commons');
 
 const log = QLog.scope('DNS');
 
+log._enableLog('debug');
+
 const dnsServer = dns.createServer();
 
 const authority = {
@@ -18,13 +20,13 @@ const authority = {
 
 const entries = [
   {
-    domain: "^wifiaquatimer.com.*",
+    domain: "^x-wifiaquatimer.com.*",
     records: [
       { type: "A", address: settings.myIP, ttl: 1800 }
     ]
   },
   {
-    domain: "^ws.pusherapp.com.*",
+    domain: "^x-ws.pusherapp.com.*",
     records: [
       { type: "A", address: settings.myIP, ttl: 1800 }
     ]
@@ -39,12 +41,16 @@ const handleDNSRequest = function (request, response) {
       entry[0].records.forEach(record => {
         record.name = question.name;
         record.ttl = record.ttl || 1800;
+        if (record.type == 'CNAME') {
+          record.data = record.address;
+          f.push(cb => proxy({ name: record.data, type: dns.consts.NAME_TO_QTYPE.A, class: 1 }, response, cb));
+        }
         response.answer.push(dns[record.type](record));
         log.debug('DNS request from', request.address.address, 'for DNS', request.question[0].name, ' spoofing to =>', record.address);
       });
     } else {
-      log.debug('forwarding request from', request.address.address, 'for', request.question[0].name);
       f.push(cb => proxy(question, response, cb));
+      log.debug('forwarding request from', request.address.address, 'for', request.question[0].name);
     }
   });
 
@@ -52,9 +58,9 @@ const handleDNSRequest = function (request, response) {
 }
 
 const proxy = function (question, response, cb) {
-  question.type = 'A';
-  log.debug('proxying', question);
-  log.debug('via', authority);
+//  question.type = 'A';
+  log.info('proxying', JSON.stringify(question));
+  log.debug('via', JSON.stringify(authority));
 
   const request = dns.Request({
     question, // forwarding the question
@@ -65,6 +71,7 @@ const proxy = function (question, response, cb) {
   // when we get answers, append them to the response
   request.on('message', (err, msg) => {
     msg.answer.forEach(a => response.answer.push(a));
+    log.debug('New DNS response :', JSON.stringify(msg.answer)); 
   });
 
   request.on('end', cb);

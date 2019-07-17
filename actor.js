@@ -3,34 +3,18 @@
 const dns = require('./dnsTools');
 const web = require('./web');
 
-// # cat | sed "s/.*{/{/" | tee /dev/stderr | sed "s/.*data.....//"| sed "s/.....channel.*//"
+// simple shell one-liner to decode the payload of a wireshark WS frame 
+// cat | sed "s/.*{/{/" | tee /dev/stderr | sed "s/.*data.....//"| sed "s/.....channel.*//"
 
-// is that the ok?
+// ## Status update from DEV
 // GET /submit/?idhash=0000000000&message=bgXzeex8AAAdAAAAAAAAAAAAAAAAAA== HTTP/1.1
+// Bytes still need to be decoded
 // 0000000 6e 05 f3 79 ec 7c 00 00 1d 00 00 00 00 00 00 00 00 00
 
-// device -> raincloud (http)
+// ## ACK from DEV
 // GET /submit/?idhash=53f574cb08&message=ascii--Day0scheduleevnt--ack--null HTTP/1.1
 // answer from raincloud to device (WS)
 // {"event":"sched_day4","data":"\"IMQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"","channel":settings.mac}
-// 0000000 20 c4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-// *
-// 0000130 00 00 00 00
-
-// GET /submit/?idhash=0000000000&message=bgXzeex8AABWAQAAAAAAAAAAAAAAAA==
-// State of the device
-// 0000000 6e 05 f3 79 ec 7c 00 00 56 01 00 00 00 00 00 00 00 00
-
-// /submit/?idhash=0000000000&message=ascii--manualctrlevnt--ack--null
-// Answer : 
-// {"event":"rev_request","data":"\"\"","channel":settings.mac}
-
-
-// WS upgrade done ? what is the socket id ?
-// {"event":"pusher:connection_established","data":"{\"socket_id\":\"265216.826472\"}"}
-// {"data": {"channel": settings.mac}, "event": "pusher:subscribe"}
-// {"event":"pusher_internal:subscription_succeeded","data":"{}","channel":settings.mac}
-// {"event":"hash_key","data":"\"53f574cb08\"","channel":settings.mac}
 
 // All channels OFF
 // {"event":"manual_sched","data":"\"IMQAAAAAAAAAAAAAAAAAAAAA\"","channel":settings.mac}
