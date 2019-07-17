@@ -6,8 +6,9 @@ This is done by DNS Spoofing the cloud entries and providing a compatible interf
 
 Our code provides a simple rest API and CLI which allows you to run the Water Timer completely on premise without internet or cloud connection.
 
-Please note : we acquired this device because it is notorically insecure (only running http and WS) so it was clear we could easily reverse engineer it an run it local only. We advise you not to use the device with the RainCloud (it is very outdated from look and feel, completing our picture), its insecure and easily hackable, the vendor did not put too much effort into the end-user security and safety.
-Please note further : the basic device (without the cloud functionality) seems pretty nice to us though. Just the network and cloud implementation was done without any love or care.
+*Please note* : we acquired this device because it is notorically insecure (only running http and WS) so it was clear we could easily reverse engineer it an run it local only. We advise you not to use the device with the RainCloud (it is very outdated from look and feel, completing our picture), its insecure and easily hackable, the vendor did not put too much effort into the end-user security and safety.
+
+*Please note further* : the basic device (without the cloud functionality) seems pretty nice to us though. Just the network and cloud implementation was done without any love or care.
 
 Have fun ...
 
