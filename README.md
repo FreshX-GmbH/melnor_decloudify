@@ -14,13 +14,13 @@ Have fun ...
 
 # The initialization protocol
 
-* Step  1: DEV DNS Lookup ws.pusherapp.com
+* Step  1: DEV DNS lookup ws.pusherapp.com (PA_Cloud)
 * Step  2: DEV -> PA_Cloud : HTTP GET /app/...
 * Step  3: PA_Cloud -> DEV : HTTP Upgrade to WS
 * Step  4: PA_Cloud -> DEV : WS : event 'connection_established'
 * Step  5: DEV -> PA_Cloud : WS : subscripe(channel)
 * Step  6: PA_Cloud -> DEV : WS : subscription_succeeded
-* Step  7: DEV DNS lookup wifiaquatimer.com
+* Step  7: DEV DNS lookup wifiaquatimer.com (AT_Cloud)
 * Step  8: DEV -> AT_Cloud : HTTP GET /submit/?idhash=xxxx&message=<base64>
 * Step  9: AT_Cloud -> DEV : 200 OK
 * Assumably AT_Cloud <-> PA_Cloud
