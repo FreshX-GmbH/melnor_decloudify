@@ -17,7 +17,7 @@ Have fun ...
 You need to provide a valid settings.json, see settings.json.template for an example.
 All fields are mandatory
 
-```json
+```
 {
 	"enabled": true, // set to false and the dns spoofing will forward everyhing
 	"port": 80,      // your cloud and WS port (must be port 80 actually, unless you proxy this)
