@@ -18,7 +18,7 @@ Have fun ...
 * Step  2: DEV -> PA_Cloud : HTTP GET /app/...
 * Step  3: PA_Cloud -> DEV : HTTP Upgrade to WS
 * Step  4: PA_Cloud -> DEV : WS : event 'connection_established'
-* Step  5: DEV -> PA_Cloud : WS : subscripe(channel)
+* Step  5: DEV -> PA_Cloud : WS : subscribe(channel)
 * Step  6: PA_Cloud -> DEV : WS : subscription_succeeded
 * Step  7: DEV DNS lookup wifiaquatimer.com (AT_Cloud)
 * Step  8: DEV -> AT_Cloud : HTTP GET /submit/?idhash=xxxx&message=<base64>

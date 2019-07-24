@@ -2,6 +2,7 @@
 
 const dns = require('./dnsTools');
 const web = require('./web');
+const { QLog, undefinedOrNull } = require('quanto-commons');
 
 // simple shell one-liner to decode the payload of a wireshark WS frame 
 // cat | sed "s/.*{/{/" | tee /dev/stderr | sed "s/.*data.....//"| sed "s/.....channel.*//"
@@ -53,6 +54,9 @@ const web = require('./web');
 // 0000000 20 c4 44 03 44 03 00 00 00 00 00 00 00 00 00 00 00 00
 // {"event":"manual_sched","data":"\"IMREAwAAAAAAAAAAAAAAAAAA\"","channel":settings.mac}
 // 0000000 20 c4 44 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+const log = QLog.scope('MAIN');
+log.info('Melnor Aqua Timer Decloudifier starting...');
 
 dns.start();
 web.start();

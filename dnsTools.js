@@ -8,7 +8,7 @@ const { QLog, undefinedOrNull } = require('quanto-commons');
 
 const log = QLog.scope('DNS');
 
-log._enableLog('debug');
+// log._enableLog('debug');
 
 const dnsServer = dns.createServer();
 
@@ -20,13 +20,13 @@ const authority = {
 
 const entries = [
   {
-    domain: "^x-wifiaquatimer.com.*",
+    domain: "^wifiaquatimer.com.*",
     records: [
       { type: "A", address: settings.myIP, ttl: 1800 }
     ]
   },
   {
-    domain: "^x-ws.pusherapp.com.*",
+    domain: "^ws.pusherapp.com.*",
     records: [
       { type: "A", address: settings.myIP, ttl: 1800 }
     ]

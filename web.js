@@ -21,6 +21,7 @@ const settings = require('./settings.json');
 const CMD_OFF = 0x000;
 const CMD_ON = 0x307;
 
+let firstSubscribe = false;
 let wsConnected = false;
 let online = false;
 let state = 0;
@@ -28,9 +29,10 @@ let client;
 
 const server = http.createServer((req, res) => {
   weblog.debug('New request : ', req.url);
+  // Our REST server
   if (req.url.startsWith("/REST")) {
-	  const opts = querystring.parse(req.url.replace(/.*REST./, 'type=').replace(/\?/, '&'));
-	  restlog.debug('Rest API call with opts', opts);
+	  const opts = querystring.parse(req.url.replace(/.*REST./, '').replace(/\?/, '&'));
+	  restlog.debug('Rest API call with opts', JSON.stringify(opts));
 	  if(online) {
     		wss.clients.forEach(function each(client) {
 	  	    if(opts.type === 'ON') {
@@ -48,29 +50,31 @@ const server = http.createServer((req, res) => {
 	  wslog.error('Device handshake in progress or device not yet connected.');
 	  return res.end('Device not connected (yet).');
   }
+  // Melnor Submit route
   if (req.url.startsWith("/submit")) {
 
 	if(wsConnected == false) {
 		wslog.error('Device not in sync. Please reset or wait.');
 	  	return res.end('OK');
 	}
+	if(firstSubscribe == true) {
+		// TODO : generate random hash_key?
+		sendMessage(wss.clients, "hash_key","\"53f574cb08\"",settings.mac);
+		firstSubscribe = false;
+  		return res.end('OK');
+	}
 
 	const id = req.url.replace(/.*idhash=/, '').replace(/.message.*/, '');
 	state = req.url.replace(/.*message=/, '');
 
-	if(state.startsWith("ascii--manualctrlevnt--ack--null")) {
-		weblog.success('Device sent event ack.');
-    		//wss.clients.forEach(function each(client) {
-        	//	client.send(JSON.stringify(constructEvent('manual_sched', CMD_ON, 0)));
-        		// client.send(JSON.stringify({"event":"rev_request","data":"\"\"","channel":settings.mac}));
-		//});
+	if(state.endsWith("ack--null")) {
+		const ackType = state.replace(/ascii--/, '').replace(/--ack--null/, '');
+		weblog.success(`Device sent event ack for ${ackType}.`);
   		return res.end('OK');
 	}
 	if(state.startsWith("ascii--revisions--E400")) {
-		weblog.debug('Device sent revisions-E400 reply.');
-    //		wss.clients.forEach(function each(client) {
-    //    		client.send(JSON.stringify(constructEvent('manual_sched', CMD_OFF, 0)));
-    //		});
+		// Whatever that is...
+		weblog.debug('Device sent revisions-E400.');
   		return res.end('OK');
 	}
 	const binState = Buffer.from(state, 'base64').slice(6);
@@ -82,24 +86,26 @@ const server = http.createServer((req, res) => {
 
 wss.on('connection', function connection(ws) {
     wsConnected = true;
+    wslog.debug('WS connection established');
     ws.on('message', function incoming(data) {
-	wslog.debug('WS message', JSON.stringify(data));
-    	wss.clients.forEach(function each(client) {
-		// Test if data contains subscribe request
-       	    wslog.debug('new message from',client._socket.remoteAddress);
-//      	    if (client !== ws && client.readyState === WebSocket.OPEN) {
-		wslog.pending('Received subscribe request. Sending ack.');
-		client.send(JSON.stringify({"event":"pusher_internal:subscription_succeeded","data":"{}","channel":settings.mac}));
-		client.send(JSON.stringify({"event":"hash_key","data":"\"53f574cb08\"","channel":settings.mac}));
-//      	    }
-        });
+	const msg = JSON.parse(data);
+	wslog.debug('New WS event', msg.event)
+	switch (msg.event) {
+	    case "pusher:subscribe":
+		wslog.pending('Received subscribe request.');
+		sendMessage(wss.clients, "pusher_internal:subscription_succeeded","{}",settings.mac);
+		firstSubscribe = true;
+		break;
+	    default:
+		wslog.error('I dont know how to handle this event.');
+		break;
+	}
     });
-    wslog.debug('WS connection');
 });
 
 exports.start = function () {
   server.listen(settings.port, () => {
-    weblog.success(`listening on 0.0.0.0:${settings.port}`);
+    weblog.success(`listening on 0.0.0.0 port ${settings.port}`);
   });
 
   server.on('upgrade', (req, socket, head) => {
@@ -111,13 +117,17 @@ exports.start = function () {
         return;
     }
     wss.handleUpgrade(req, socket, head, function done(ws) {
-      wss.clients.forEach(function each(client) {
-      	wslog.pending('Initiating WS handshake with',client._socket.remoteAddress);
-	client.send(JSON.stringify({"event":"pusher:connection_established","data":"{\"socket_id\":\"265218.826472\"}"}));
-      });
-      wss.emit('connection', ws, req);
+        sendMessage(wss.clients, 'connection_established', '{}');
+        wss.emit('connection', ws, req);
     });
   });
+}
+
+function sendMessage (clients, event, data, channel = ''){
+    clients.forEach(function each(wsClient) {
+        wslog.pending(`Sending new message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')}`);
+        wsClient.send(JSON.stringify({"event":event, "data": data, "channel": channel}));
+    });
 }
 
 function constructEvent (typ, cmd, channel, min) {
