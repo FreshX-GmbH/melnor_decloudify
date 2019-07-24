@@ -8,7 +8,7 @@ const { QLog, undefinedOrNull } = require('quanto-commons');
 
 const log = QLog.scope('DNS');
 
-// log._enableLog('debug');
+log._enableLog(settings.loglevel);
 
 const dnsServer = dns.createServer();
 
@@ -37,7 +37,7 @@ const handleDNSRequest = function (request, response) {
   let f = [];
   request.question.forEach(question => {
     let entry = entries.filter(r => new RegExp(r.domain, 'i').exec(question.name));
-    if (entry.length) {
+    if (entry.length && settings.enabled === true) {
       entry[0].records.forEach(record => {
         record.name = question.name;
         record.ttl = record.ttl || 1800;

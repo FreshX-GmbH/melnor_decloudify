@@ -12,7 +12,28 @@ Our code provides a simple rest API and CLI which allows you to run the Water Ti
 
 Have fun ...
 
-# The initialization protocol
+# The settings
+
+You need to provide a valid settings.json, see settings.json.template for an example.
+All fields are mandatory
+
+```json
+{
+	"enabled": true, // set to false and the dns spoofing will forward everyhing
+	"port": 80,      // your cloud and WS port (must be port 80 actually, unless you proxy this)
+	"mac": "<MAC address of you rf device case sensitive and without :>", // find it on the device
+	"valveId": "<four code valve id>",  		 // find it on the sticker of your valve
+	"dnsForwarder": "8.8.8.8", 			 // which upstream DNS to use
+	"myIP": "<ip of the computer running this code>",// needed for the DNS spoofing
+	"loglevel": "debug",				 // what loglevel to run in (set to info in production)
+}
+```
+
+# How it works
+
+... to be described (or see blog)
+
+# The handshake
 
 * Step  1: DEV DNS lookup ws.pusherapp.com (PA_Cloud)
 * Step  2: DEV -> PA_Cloud : HTTP GET /app/...

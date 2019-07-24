@@ -18,10 +18,12 @@ const wss = new WebSocket.Server({ noServer: true });
 
 const settings = require('./settings.json');
 
-const CMD_OFF = 0x000;
-const CMD_ON = 0x307;
+const CMD_OFF = 0x00;
+const CMD_ON = 0x02;
 
 let firstSubscribe = false;
+let heloTimeout = false;
+let timeout = 30;
 let wsConnected = false;
 let online = false;
 let state = 0;
@@ -52,18 +54,6 @@ const server = http.createServer((req, res) => {
   }
   // Melnor Submit route
   if (req.url.startsWith("/submit")) {
-
-	if(wsConnected == false) {
-		wslog.error('Device not in sync. Please reset or wait.');
-	  	return res.end('OK');
-	}
-	if(firstSubscribe == true) {
-		// TODO : generate random hash_key?
-		sendMessage(wss.clients, "hash_key","\"53f574cb08\"",settings.mac);
-		firstSubscribe = false;
-  		return res.end('OK');
-	}
-
 	const id = req.url.replace(/.*idhash=/, '').replace(/.message.*/, '');
 	state = req.url.replace(/.*message=/, '');
 
@@ -72,12 +62,30 @@ const server = http.createServer((req, res) => {
 		weblog.success(`Device sent event ack for ${ackType}.`);
   		return res.end('OK');
 	}
+
+	if(wsConnected == false) {
+		wslog.error('Device not in sync. Please reset or wait.');
+	  	return res.end('OK');
+	}
+	if(firstSubscribe == true) {
+		// TODO : generate random hash_key?
+		sendMessage(wss.clients, "hash_key", settings.mac, settings.mac);
+		firstSubscribe = false;
+  		return res.end('OK');
+	}
+	//if(heloTimeout == true) {
+		//sendMessage(wss.clients, "timestamp", Buffer.from(0x1758).toString('base64'), settings.mac);
+	//	heloTimeout = false;
+  	//	return res.end('OK');
+	//}
+
 	if(state.startsWith("ascii--revisions--E400")) {
 		// Whatever that is...
 		weblog.debug('Device sent revisions-E400.');
   		return res.end('OK');
 	}
-	const binState = Buffer.from(state, 'base64').slice(6);
+	// const binState = Buffer.from(state, 'base64').slice(6);
+	const binState = Buffer.from(state, 'base64');
 	weblog.complete(`Device with hash ${id} online, state : ${binState.toString('hex').replace(/(.{4})/g,"$1:").replace(/:$/, '')}`);
     	online = true;
   }
@@ -103,13 +111,23 @@ wss.on('connection', function connection(ws) {
     });
 });
 
+function checkTimeout() {
+	if(heloTimeout === false) {
+		timeout = 30;
+		heloTimeout = true;
+	} else {
+		timeout -= 5;
+	}
+}
+
 exports.start = function () {
+  setInterval(checkTimeout, 5000);
   server.listen(settings.port, () => {
     weblog.success(`listening on 0.0.0.0 port ${settings.port}`);
   });
 
   server.on('upgrade', (req, socket, head) => {
-    weblog.success('WebSocket upgrade request from', socket.remoteAddress);
+    weblog.success('WebSocket upgrade request from', socket.remoteAddress.replace(/.*:/, ''));
     // if (req.headers['upgrade'] !== 'websocket' || req.headers['upgrade'] !== 'WebSocket') {
     if (req.headers['upgrade'] !== 'WebSocket') {
 	console.log('Bad request:', req.headers);
@@ -136,10 +154,12 @@ function constructEvent (typ, cmd, channel, min) {
 	  channel: settings.mac,
   }
   const buffer = Buffer.alloc(18);
-  buffer.writeUInt16LE(cmd,2+2*channel);
+  buffer.writeUInt8(cmd,2*channel+1);
+  buffer.writeUInt8(min,2*channel);
   buffer.writeUInt16LE(parseInt(settings.valveId,16));
   ev.data = `\"${buffer.toString('base64')}\"`;
   console.log(JSON.stringify(ev));
+  weblog.complete(`Sent buffer ${buffer.toString('hex').replace(/(.{4})/g,"$1:").replace(/:$/, '')}`);
   return ev;
 }
 

@@ -1,7 +1,9 @@
 {
+	"enabled": true,
 	"port": 80,
 	"mac": "<MAC address of you rf device case sensitive and without :>",
 	"valveId": "<four code valve id (sticker on the valve)>",
 	"dnsForwareder": "8.8.8.8",
 	"myIP": "<ip of the computer running this code>"
+	"loglevel": "debug",
 }

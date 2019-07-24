@@ -10,7 +10,21 @@ const { QLog, undefinedOrNull } = require('quanto-commons');
 // ## Status update from DEV
 // GET /submit/?idhash=0000000000&message=bgXzeex8AAAdAAAAAAAAAAAAAAAAAA== HTTP/1.1
 // Bytes still need to be decoded
-// 0000000 6e 05 f3 79 ec 7c 00 00 1d 00 00 00 00 00 00 00 00 00
+// Valid examples (Note CNTR is increasing)
+// ???? ???? ???? ???? CNTR DEV0 CH01 ????
+// FIX? FIX? FIX? STAT MINS FIX. [ STATES OF CHANNELS   ]
+// 6e05 f379 ec7c 0200 1103 0000 0000 0000 0000 0000 0000 -> Device handshake running, no hashkey yet (Time 31s)
+// Set timestamp C3 03 03 in Time 41s
+// 6e05 f379 ec7c 0300 c303 20c4 00f5 0000 0000 0000 0000 -> Device handshake done, all OFF (Time 51s)
+// Turn CH01 on in Time 74s for 30 minutes (20c4 e203 0000 ...) -> until timer reaches e2
+// 6e05 f379 ec7c 0300 c303 20c4 11f5 0000 0000 0000 0000 -> Channel 1 on (Time 101s)
+// Set timestamp C5 03 03 in Time 101s
+// 6e05 f379 ec7c 0300 f803 20c4 00f5 0000 0000 0000 0000 -> Channel 1 off (Time, approx 3060s)
+// ???
+// 6e05 f379 ec7c 0000 1d00 0000 0000 0000 0000 0000 0000 ->  ??
+// Invalid examples
+// 0200:0903:0000:0000:0000:0000:0000:0000
+// 0200:0a03:0000:0000:0000:0000:0000:0000
 
 // ## ACK from DEV
 // GET /submit/?idhash=53f574cb08&message=ascii--Day0scheduleevnt--ack--null HTTP/1.1
