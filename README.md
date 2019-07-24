@@ -22,10 +22,10 @@ All fields are mandatory
 	"enabled": true, // set to false and the dns spoofing will forward everyhing
 	"port": 80,      // your cloud and WS port (must be port 80 actually, unless you proxy this)
 	"mac": "<MAC address of you rf device case sensitive and without :>", // find it on the device
+	"myIP": "<ip of the computer running this code>",// needed for the DNS spoofing
 	"valveId": "<four code valve id>",  		 // find it on the sticker of your valve
 	"dnsForwarder": "8.8.8.8", 			 // which upstream DNS to use
-	"myIP": "<ip of the computer running this code>",// needed for the DNS spoofing
-	"loglevel": "debug",				 // what loglevel to run in (set to info in production)
+	"loglevel": "debug"				 // what loglevel to run in (set to info in production)
 }
 ```
 
