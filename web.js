@@ -22,12 +22,16 @@ const CMD_OFF = 0x00;
 const CMD_ON = 0x02;
 
 let firstSubscribe = false;
+let firstClear = false;
 let heloTimeout = false;
-let timeout = 30;
+let timeStamp = false;
+let remoteStamp = 0;
+let timeout = 60;
 let wsConnected = false;
 let online = false;
 let state = 0;
 let client;
+let SM=0;
 
 const server = http.createServer((req, res) => {
   weblog.debug('New request : ', req.url);
@@ -60,24 +64,44 @@ const server = http.createServer((req, res) => {
 	if(state.endsWith("ack--null")) {
 		const ackType = state.replace(/ascii--/, '').replace(/--ack--null/, '');
 		weblog.success(`Device sent event ack for ${ackType}.`);
-  		return res.end('OK');
+  	//	return res.end('OK');
 	}
 
-	if(wsConnected == false) {
+	if(wsConnected === false) {
 		wslog.error('Device not in sync. Please reset or wait.');
 	  	return res.end('OK');
 	}
-	if(firstSubscribe == true) {
+	if(firstSubscribe === true) {
 		// TODO : generate random hash_key?
 		sendMessage(wss.clients, "hash_key", settings.mac, settings.mac);
 		firstSubscribe = false;
+		// Force a timeevent
+		heloTimeout = -1;
   		return res.end('OK');
 	}
-	//if(heloTimeout == true) {
-		//sendMessage(wss.clients, "timestamp", Buffer.from(0x1758).toString('base64'), settings.mac);
-	//	heloTimeout = false;
-  	//	return res.end('OK');
-	//}
+	if(SM === 0) {
+        	sendMessage(wss.clients,'manual_sched', 0);
+		SM++;
+  		return res.end('OK');
+	}
+	if(SM === 1) {
+		firstClear = true;
+		timeStamp = 512;
+		sendTimestamp(timeStamp);
+		SM++;
+  		return res.end('OK');
+	}
+	if(SM === 2) {
+        	// sendMessage(wss.clients,'rev_request', '');
+		SM++;
+  		return res.end('OK');
+	}
+	// why?
+	if(heloTimeout === true) {
+		sendTimestamp(timeStamp);
+		heloTimeout = false;
+  		return res.end('OK');
+	}
 
 	if(state.startsWith("ascii--revisions--E400")) {
 		// Whatever that is...
@@ -88,6 +112,10 @@ const server = http.createServer((req, res) => {
 	const binState = Buffer.from(state, 'base64');
 	weblog.complete(`Device with hash ${id} online, state : ${binState.toString('hex').replace(/(.{4})/g,"$1:").replace(/:$/, '')}`);
     	online = true;
+	remoteStamp = binState[8] + binState[9] * 256;
+	// if (timeStamp !== false && remoteStamp != timeStamp) {
+	//	timeStamp = remoteStamp;
+	// }
   }
   return res.end('OK');
 });
@@ -103,6 +131,7 @@ wss.on('connection', function connection(ws) {
 		wslog.pending('Received subscribe request.');
 		sendMessage(wss.clients, "pusher_internal:subscription_succeeded","{}",settings.mac);
 		firstSubscribe = true;
+		online = false;
 		break;
 	    default:
 		wslog.error('I dont know how to handle this event.');
@@ -111,10 +140,27 @@ wss.on('connection', function connection(ws) {
     });
 });
 
+function sendTimestamp(ts) {
+	const b = Buffer.alloc(4);
+  	b.writeUInt16LE(parseInt(ts,10));
+	sendMessage(wss.clients, "timestamp", b.toString('base64'), settings.mac);
+}
+
 function checkTimeout() {
-	if(heloTimeout === false) {
-		timeout = 30;
+	weblog.debug(`Timeout called : US:${timeStamp} <-> DEV:${remoteStamp}`);
+	if(timeout < 0) {
+		timeout = 60;
 		heloTimeout = true;
+		if(timeStamp) {
+			timeStamp++;
+			if(online !== true) {
+				timeStamp = 256;
+				const b = Buffer.alloc(4);
+  				b.writeUInt16LE(parseInt(timeStamp,16));
+				weblog.warn('heloTimeout', timeStamp);
+				sendMessage(wss.clients, "timestamp", b.toString('base64'), settings.mac);
+			}
+		}
 	} else {
 		timeout -= 5;
 	}
@@ -148,14 +194,28 @@ function sendMessage (clients, event, data, channel = ''){
     });
 }
 
+function sendLongMessage (clients, event, data, channel = ''){
+    clients.forEach(function each(wsClient) {
+  	const buffer = Buffer.alloc(134);
+  	buffer.writeUInt16LE(data, 0);
+        wslog.pending(`Sending long message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')}`);
+        wsClient.send(JSON.stringify({"event":event, "data": data.toString('base64'), "channel": channel}));
+    });
+}
+
+
 function constructEvent (typ, cmd, channel, min) {
+  if (channel < 1 || channel >8) {
+        weblog.error('Channel must be between 1 and 8')
+	return;
+  }
   const ev = {
           event: typ,
 	  channel: settings.mac,
   }
   const buffer = Buffer.alloc(18);
-  buffer.writeUInt8(cmd,2*channel+1);
-  buffer.writeUInt8(min,2*channel);
+  console.log(min + timeStamp);
+  buffer.writeUInt16LE(min + timeStamp, 2 * channel);
   buffer.writeUInt16LE(parseInt(settings.valveId,16));
   ev.data = `\"${buffer.toString('base64')}\"`;
   console.log(JSON.stringify(ev));
