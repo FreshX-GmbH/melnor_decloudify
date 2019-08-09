@@ -12,7 +12,7 @@ const { QLog, undefinedOrNull } = require('quanto-commons');
 // Bytes still need to be decoded
 // Valid examples (Note CNTR is increasing)
 // ???? ???? ???? ???? CNTR DEV0 CH01 ????
-// FIX? FIX? FIX? STAT MINS FIX. [ STATES OF CHANNELS   ]
+// MAC2 MAC1 MAC0 STAT MINS FIX. [ STATES OF CHANNELS   ]
 // 6e05 f379 ec7c 0200 1103 0000 0000 0000 0000 0000 0000 -> Device handshake running, no hashkey yet (Time 31s)
 // Set timestamp C3 03 03 in Time 41s
 // 6e05 f379 ec7c 0300 c303 20c4 00f5 0000 0000 0000 0000 -> Device handshake done, all OFF (Time 51s)
@@ -20,11 +20,16 @@ const { QLog, undefinedOrNull } = require('quanto-commons');
 // 6e05 f379 ec7c 0300 c303 20c4 11f5 0000 0000 0000 0000 -> Channel 1 on (Time 101s)
 // Set timestamp C5 03 03 in Time 101s
 // 6e05 f379 ec7c 0300 f803 20c4 00f5 0000 0000 0000 0000 -> Channel 1 off (Time, approx 3060s)
-// ???
+// MAC2 MAC1 MAC0
 // 6e05 f379 ec7c 0000 1d00 0000 0000 0000 0000 0000 0000 ->  ??
 // Invalid examples
 // 0200:0903:0000:0000:0000:0000:0000:0000
-// 0200:0a03:0000:0000:0000:0000:0000:0000
+// 0201:0a03:0000:0000:0000:0000:0000:0000
+// Invalid states
+// 6ac7:228b:efad:8a67:acb5:a9a9:7af9:edfb:e69c:93ef:a7ba:59
+// ffff:ffff:ffff:0000:0002:0000:0000:0002:0000:0000:0002
+
+
 
 // ## ACK from DEV
 // GET /submit/?idhash=53f574cb08&message=ascii--Day0scheduleevnt--ack--null HTTP/1.1

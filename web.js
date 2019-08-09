@@ -32,6 +32,7 @@ let online = false;
 let state = 0;
 let client;
 let SM=0;
+let ping = false;
 
 const server = http.createServer((req, res) => {
   weblog.debug('New request : ', req.url);
@@ -63,7 +64,7 @@ const server = http.createServer((req, res) => {
 
 	if(state.endsWith("ack--null")) {
 		const ackType = state.replace(/ascii--/, '').replace(/--ack--null/, '');
-		weblog.success(`Device sent event ack for ${ackType}.`);
+		weblog.success(`Device sent event ack for ${ackType} device time : ${remoteStamp}.`);
   	//	return res.end('OK');
 	}
 
@@ -80,24 +81,60 @@ const server = http.createServer((req, res) => {
   		return res.end('OK');
 	}
 	if(SM === 0) {
-        	sendMessage(wss.clients,'manual_sched', 0);
+        	sendLongMessage(wss.clients,'sched_day0', 0);
 		SM++;
   		return res.end('OK');
 	}
 	if(SM === 1) {
+        	sendLongMessage(wss.clients,'sched_day1', 0);
+		SM++;
+  		return res.end('OK');
+	}
+	if(SM === 2) {
+        	sendLongMessage(wss.clients,'sched_day2', 0);
+		SM++;
+  		return res.end('OK');
+	}
+	if(SM === 3) {
+        	sendLongMessage(wss.clients,'sched_day3', 0);
+		SM++;
+  		return res.end('OK');
+	}
+	if(SM === 4) {
+        	sendLongMessage(wss.clients,'sched_day4', 0);
+		SM++;
+  		return res.end('OK');
+	}
+	if(SM === 5) {
+        	sendLongMessage(wss.clients,'sched_day5', 0);
+		SM++;
+  		return res.end('OK');
+	}
+	if(SM === 6) {
+        	sendLongMessage(wss.clients,'sched_day6', 0);
+		SM++;
+  		return res.end('OK');
+	}
+	if(SM === 7) {
+        	sendMessage(wss.clients,'manual_sched', 0);
+		SM++;
+  		return res.end('OK');
+	}
+	if(SM === 8) {
 		firstClear = true;
 		timeStamp = 512;
 		sendTimestamp(timeStamp);
 		SM++;
   		return res.end('OK');
 	}
-	if(SM === 2) {
-        	// sendMessage(wss.clients,'rev_request', '');
+	if(SM === 9) {
+        	sendMessage(wss.clients,'rev_request', '');
 		SM++;
   		return res.end('OK');
 	}
 	// why?
 	if(heloTimeout === true) {
+		wslog.debug('Sending timestamp update.');
 		sendTimestamp(timeStamp);
 		heloTimeout = false;
   		return res.end('OK');
@@ -108,36 +145,46 @@ const server = http.createServer((req, res) => {
 		weblog.debug('Device sent revisions-E400.');
   		return res.end('OK');
 	}
-	// const binState = Buffer.from(state, 'base64').slice(6);
 	const binState = Buffer.from(state, 'base64');
 	weblog.complete(`Device with hash ${id} online, state : ${binState.toString('hex').replace(/(.{4})/g,"$1:").replace(/:$/, '')}`);
     	online = true;
 	remoteStamp = binState[8] + binState[9] * 256;
-	// if (timeStamp !== false && remoteStamp != timeStamp) {
-	//	timeStamp = remoteStamp;
-	// }
   }
   return res.end('OK');
 });
 
 wss.on('connection', function connection(ws) {
-    wsConnected = true;
-    wslog.debug('WS connection established');
-    ws.on('message', function incoming(data) {
-	const msg = JSON.parse(data);
-	wslog.debug('New WS event', msg.event)
-	switch (msg.event) {
-	    case "pusher:subscribe":
-		wslog.pending('Received subscribe request.');
-		sendMessage(wss.clients, "pusher_internal:subscription_succeeded","{}",settings.mac);
-		firstSubscribe = true;
-		online = false;
-		break;
-	    default:
-		wslog.error('I dont know how to handle this event.');
-		break;
-	}
-    });
+        wsConnected = true;
+        wslog.debug('New WS connection established');
+        ws.on('pong',function(mess) { 
+            wslog.pending(`received a pong : ${mess}`); 
+            }
+        );
+        ws.on('ping',function(mess) { 
+            wslog.pending(`received a ping : ${mess}`); 
+            }
+        );
+
+        ws.on('message', function incoming(data) {
+            const msg = JSON.parse(data);
+            wslog.debug('New WS event', msg.event)
+            switch (msg.event) {
+                case "pusher:subscribe":
+    		if(!online) {
+            	    wslog.pending('Received subscribe request.');
+            	    sendMessage(wss.clients, "pusher_internal:subscription_succeeded","{}",settings.mac);
+            	    firstSubscribe = true;
+            	    online = false;
+            	    SM=0;
+		} else {
+            	    wslog.pending('Ignoring subscribe request.');
+		}
+            	break;
+            default:
+            	wslog.error('I dont know how to handle this event.');
+            	break;
+            }
+        });
 });
 
 function sendTimestamp(ts) {
@@ -147,19 +194,25 @@ function sendTimestamp(ts) {
 }
 
 function checkTimeout() {
-	weblog.debug(`Timeout called : US:${timeStamp} <-> DEV:${remoteStamp}`);
+	weblog.debug(`Timeout called : our time:${timeStamp} <-> dev time:${remoteStamp}`);
 	if(timeout < 0) {
-		timeout = 60;
-		heloTimeout = true;
-		if(timeStamp) {
-			timeStamp++;
-			if(online !== true) {
-				timeStamp = 256;
-				const b = Buffer.alloc(4);
-  				b.writeUInt16LE(parseInt(timeStamp,16));
-				weblog.warn('heloTimeout', timeStamp);
-				sendMessage(wss.clients, "timestamp", b.toString('base64'), settings.mac);
+		timeout = 30;
+
+		if(ping === true) {
+			ping = false;
+			if(online === true) {
+			    wslog.debug('Sending ping.');
+			    sendPing(wss.clients);
 			}
+		} else {
+			ping = true;
+			if(online === true)
+			    heloTimeout = false;
+			    if(timeStamp) {
+			        wslog.debug('Sending timestamp update.');
+			        timeStamp++;
+			        sendTimestamp(timeStamp);
+			    }
 		}
 	} else {
 		timeout -= 5;
@@ -180,29 +233,41 @@ exports.start = function () {
         socket.end('HTTP/1.1 400 Bad Request');
         return;
     }
-    wss.handleUpgrade(req, socket, head, function done(ws) {
-        sendMessage(wss.clients, 'connection_established', '{}');
-        wss.emit('connection', ws, req);
-    });
+        wss.handleUpgrade(req, socket, head, function done(ws) {
+    	    if(!online) {
+                sendMessage(wss.clients, 'connection_established', '{}');
+            } else {
+                weblog.error('Ignoring new WebSocket upgrade. We are already online');
+            }
+            wss.emit('connection', ws, req);
+        });
   });
 }
 
-function sendMessage (clients, event, data, channel = ''){
+function sendPing (clients){
+    clients.forEach(function each(wsClient) {
+        wsClient.ping('', {}, true);
+    });
+}
+
+function sendMessage (clients, event, data, channel = settings.mac) {
     clients.forEach(function each(wsClient) {
         wslog.pending(`Sending new message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')}`);
-        wsClient.send(JSON.stringify({"event":event, "data": data, "channel": channel}));
+        wslog.debug(JSON.stringify({"event":event, "data": "\""+data+"\"", "channel": channel}));
+        wsClient.send(JSON.stringify({"event":event, "data": "\""+data+"\"", "channel": channel}));
     });
 }
 
 function sendLongMessage (clients, event, data, channel = ''){
     clients.forEach(function each(wsClient) {
   	const buffer = Buffer.alloc(134);
-  	buffer.writeUInt16LE(data, 0);
+  	buffer.writeUInt16LE(parseInt(settings.valveId,16));
+  	buffer.writeUInt16LE(data, 4);
         wslog.pending(`Sending long message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')}`);
-        wsClient.send(JSON.stringify({"event":event, "data": data.toString('base64'), "channel": channel}));
+  	wslog.complete(`Sent buffer ${buffer.toString('hex').replace(/(.{4})/g,"$1:").replace(/:$/, '')}`);
+        wsClient.send(JSON.stringify({"event":event, "data": buffer.toString('base64'), "channel": channel}));
     });
 }
-
 
 function constructEvent (typ, cmd, channel, min) {
   if (channel < 1 || channel >8) {
