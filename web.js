@@ -32,6 +32,7 @@ let online = false;
 let state = 0;
 let client;
 let SM=0;
+let iv;
 let ping = false;
 
 const server = http.createServer((req, res) => {
@@ -116,6 +117,11 @@ const server = http.createServer((req, res) => {
 
   	    return res.end('OK');
 	}
+	if(SM === 9) {
+            if(iv) clearInterval(iv);
+  	    iv = setInterval(checkTimeout, 60000);
+            SM++;
+	}
 	if(state.startsWith("ascii--revisions--E400")) {
 	    weblog.debug('Device sent revisions-E400.');
 
@@ -178,11 +184,11 @@ wss.on('connection', function connection(ws) {
 function checkTimeout() {
     timeStamp += 1;
     weblog.debug(`Watchdog : time:${timeStamp}/${remoteStamp}`);
+    // msgTimestamp(timeStamp);
     return;
 }
 
 exports.start = function () {
-  setInterval(checkTimeout, 60000);
   server.listen(settings.port, () => {
     weblog.success(`listening on 0.0.0.0 port ${settings.port}`);
   });
