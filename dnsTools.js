@@ -46,7 +46,7 @@ const handleDNSRequest = function (request, response) {
           f.push(cb => proxy({ name: record.data, type: dns.consts.NAME_TO_QTYPE.A, class: 1 }, response, cb));
         }
         response.answer.push(dns[record.type](record));
-        log.debug('DNS request from', request.address.address, 'for DNS', request.question[0].name, ' spoofing to =>', record.address);
+        log.debug('DNS request from', request.address.address, 'for DNS', request.question[0].name, 'spoofing to =>', record.address);
       });
     } else {
       f.push(cb => proxy(question, response, cb));
