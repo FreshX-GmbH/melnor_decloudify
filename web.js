@@ -181,6 +181,7 @@ wss.on('connection', (ws) => {
 function checkTimeout() {
     timeStamp += 1;
     weblog.debug(`Watchdog : time:${timeStamp}/${remoteStamp}`);
+    sendPing(wss.clients);
     // msgTimestamp(timeStamp);
 }
 
