@@ -36,11 +36,11 @@ All fields are mandatory
 
 # How it works
 
-To start
+Find out the device IP and connect to its web interface, set the DNS Server and the Gateway of the Melnor to your system running this code (i.e. a raspberry pi). To start the code simpy run
 
 ```node web.js```
 
-< full function to be described >
+< ... full function to be described ... >
 
 # The handshake
 
