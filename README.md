@@ -1,3 +1,8 @@
+# Warning
+
+This is code under development and not yet 100% functional. Starting with the next summer season i will hopefully finish it.
+If you have questions or want to discuss the protocol contact me at kai+melnor at freshx dot de.
+
 # Intro
 
 This replaces the wifiaquatimer.com cloud interface of the Melnor 4 channel Aqua Timer Smart (also known as Natrain)
@@ -31,7 +36,11 @@ All fields are mandatory
 
 # How it works
 
-... to be described (or see blog)
+To start
+
+```node web.js```
+
+< full function to be described >
 
 # The handshake
 
