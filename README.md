@@ -1,6 +1,6 @@
 # Warning
 
-This is code under development and not yet 100% functional. Starting with the next summer season i will hopefully finish it.
+This is code under development and not yet 100% functional. Starting with the next summer season, when i need the device again, i will hopefully finish it.
 If you have questions or want to discuss the protocol contact me at kai+melnor at freshx dot de.
 
 # Intro
