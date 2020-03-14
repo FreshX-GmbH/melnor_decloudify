@@ -34,6 +34,14 @@ All fields are mandatory
 }
 ```
 
+# The REST API
+
+http://<IP of your decloudifier>/REST?channel=2&type=ON&min=60
+
+type = ON|OFF
+channel = 0,1,2,3
+min = 0 - ??? (600?)
+
 # How it works
 
 Find out the Melnor device IP in your LAN and connect to its web interface via HTTP, set the DNS Server and the Gateway of the Melnor to your system running this code (i.e. a raspberry pi). To start the code simpy run
