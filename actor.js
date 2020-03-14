@@ -37,6 +37,17 @@ const { QLog } = require('quanto-commons');
 // MAC2 MAC1 MAC0      TIME
 // ffff:ffff:ffff:0000:0002:0000:0000:0002:0000:0000:0002
 
+// MAC2 MAC1 MAC0:????:TIME:VALV:CHAN:
+// ch 1,2,3 on
+// 44da:f279:ec7c:0c00:0360:e2dc:07ff:0000:0000:0000:0000
+// channel 2 + 4 on
+// 44da:f279:ec7c:0c00:0360:e2dc:0aff:0000:0000:0000:0000
+// channel 2 on
+// 44da:f279:ec7c:0c00:0360:e2dc:02ff:0000:0000:0000:0000
+// all channels on
+// 44da:f279:ec7c:0c00:0360:e2dc:0fff:0000:0000:0000:0000
+// 0x7 = 0x1 + 0x2 + 0x4 + 0x8
+
 // {"event":"manual_sched","data":"\"IMQAAAAAAAAAAAAAAAAAAAAA\"","channel":settings.mac}
 // IMQAAAAAAAAAAAAAAAAAAAAA
 // 0000000 20 c4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
