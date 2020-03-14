@@ -29,6 +29,14 @@ All fields are mandatory
 }
 ```
 
+# The REST API
+
+http://<IP of your decloudifier>/REST?channel=2&type=ON&min=60
+
+type = ON|OFF
+channel = 0,1,2,3
+min = 0 - ??? (600?)
+
 # How it works
 
 ... to be described (or see blog)
