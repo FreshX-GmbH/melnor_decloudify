@@ -1,3 +1,8 @@
+# Warning
+
+This is code under development and not yet 100% functional. Starting with the next summer season, when i need the device again, i will hopefully finish it.
+If you have questions or want to discuss the protocol contact me at kai+melnor at freshx dot de.
+
 # Intro
 
 This replaces the wifiaquatimer.com cloud interface of the Melnor 4 channel Aqua Timer Smart (also known as Natrain)
@@ -39,7 +44,11 @@ min = 0 - ??? (600?)
 
 # How it works
 
-... to be described (or see blog)
+Find out the Melnor device IP in your LAN and connect to its web interface via HTTP, set the DNS Server and the Gateway of the Melnor to your system running this code (i.e. a raspberry pi). To start the code simpy run
+
+```node web.js```
+
+< ... full function to be described ... >
 
 # The handshake
 
