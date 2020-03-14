@@ -1,7 +1,6 @@
 # Warning
 
-This is code under development and not yet 100% functional. Starting with the next summer season, when i need the device again, i will hopefully finish it.
-If you have questions or want to discuss the protocol contact me at kai+melnor at freshx dot de.
+This is code under development and not yet 100% functional. As of 03/2020 you can control one channel at a time via the REST api but it is not stable yet, since the protocol is restarting the handshake occasionally.  If you have questions or want to discuss the protocol contact me at kai+melnor at freshx dot de.
 
 # Intro
 
@@ -36,9 +35,14 @@ All fields are mandatory
 
 # The REST API
 
-http://<IP of your decloudifier>/REST?channel=2&type=ON&min=60
+Turn channel 2 on 60 minutes
 
-type = ON|OFF
+http://<IP of your decloudifier>/REST?channel=2&min=60
+
+Turn channel 2 off
+
+http://<IP of your decloudifier>/REST?channel=2&min=0
+
 channel = 0,1,2,3
 min = 0 - ??? (600?)
 
@@ -46,7 +50,7 @@ min = 0 - ??? (600?)
 
 Find out the Melnor device IP in your LAN and connect to its web interface via HTTP, set the DNS Server and the Gateway of the Melnor to your system running this code (i.e. a raspberry pi). To start the code simpy run
 
-```node web.js```
+```node actor.js```
 
 < ... full function to be described ... >
 

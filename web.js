@@ -16,9 +16,6 @@ const wss = new WebSocket.Server({ noServer: true });
 
 const settings = require('./settings.json');
 
-const CMD_OFF = 0x00;
-const CMD_ON = 0x02;
-
 let timeStamp = 0;
 let remoteStamp = 0;
 let wsConnected = false;
@@ -26,6 +23,8 @@ let online = false;
 let state = 0;
 let SM = 0;
 let iv;
+let valves = [ 0, 0, 0, 0, 0, 0, 0, 0 ];
+let valveTimes = [ 0, 0, 0, 0, 0, 0, 0 ];
 
 const server = http.createServer((req, res) => {
     weblog.debug('New request : ', req.url);
@@ -33,32 +32,46 @@ const server = http.createServer((req, res) => {
     if (req.url.startsWith('/REST')) {
         const opts = querystring.parse(req.url.replace(/.*REST./, '').replace(/\?/, '&'));
         restlog.debug('Rest API call with opts', JSON.stringify(opts));
-        if (online) {
-            if (opts.type === 'ON') {
-                restlog.pending(`SET CH ${opts.channel} to : ${opts.type} for ${opts.min} minutes.`);
-                wslog.pending('Sending an ON message for channel', opts.channel, 'runtime', opts.min);
-                const r = msgManualSched(CMD_ON, opts.channel, opts.min);
+	if(!opts.channel) {
+
+    	    let dbg = '';
+            let i = 0;
+    	    for(i in valves) {
+                dbg += ` "V${i}": "${valves[i]}",`;
+    	    }
+	    dbg += ` "systime": "${timeStamp}"`;
+	    dbg.replace(/,,,/, '');
+            return res.end(`{ "status": "OK", "valves": { ${dbg} }}`);
+	}
+        let ch = parseInt(opts.channel,10);
+        if (opts.min && opts.min > 0) {
+            restlog.pending(`SET CH ${opts.channel} to ${opts.min} minutes.`);
+	    valves[ch] = parseInt(opts.min, 10) + timeStamp;
+            wslog.pending('Turning ON channel', opts.channel, ' for runtime', opts.min);
+	    if(online) {
+                const r = msgManualSched(opts.channel, valves[ch]);
                 if (r !== true) {
-                    return res.end(r);
+                    return res.end(`{"status" : "err", "msg": "${r}"`);
                 }
-            } else {
-                restlog.pending(`SET CH ${opts.channel} to : ${opts.type}`);
-                wslog.pending('Sending an OFF message for channel', opts.channel);
-                const r = msgManualSched(CMD_OFF, opts.channel, opts.min);
+        	return res.end('{ "status": "OK", "msg": "value updated"}');
+            }
+        } else {
+            restlog.pending(`SET CH ${opts.channel} to.`);
+            wslog.pending('Sending an OFF message for channel', opts.channel);
+	    valves[ch];
+	    if(online) {
+                const r = msgManualSched(opts.channel, 0);
                 if (r !== true) {
-                    return res.end(r);
+                    return res.end(`{"status" : "err", "msg": "${r}"`);
                 }
             }
-
-            return res.end('OK');
         }
-        wslog.error('Device handshake in progress or device not yet connected.');
 
-        return res.end('Device not connected (yet).');
+       	return res.end('{ "status": "OK", "msg": "value set to 0." }');
     }
     // Melnor Submit route
     else if (req.url.startsWith('/submit')) {
-        const id = req.url.replace(/.*idhash=/, '').replace(/.message.*/, '');
+        const id = req.url.replace(/.*idhash=/, '').replace(/.message.*/, '').replace(/'/g, '');
         state = req.url.replace(/.*message=/, '');
         let binState;
 
@@ -97,7 +110,7 @@ const server = http.createServer((req, res) => {
             return res.end('OK');
         }
         if (SM === 7) {
-            msgManualSched(0, settings.valveId, 0);
+            msgManualSched(2, 20);
             SM += 1;
 
             return res.end('OK');
@@ -128,12 +141,12 @@ const server = http.createServer((req, res) => {
             return res.end('OK');
         }
         if (remoteId === 'ffffffffffff') {
-            weblog.complete('Device online with errors, state : MAC2 MAC1 MAC0 STAT TIME VALV CH01 CH02 CH03 CH04');
+            weblog.complete('Device online with errors, state : MAC2 MAC1 MAC0 STAT TIME VALV CHNL ???? ???? ???? STAT2');
             weblog.complete(`DevID ${id}                   ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
             remoteStamp = binState[8] + (binState[9] * 256);
             online = true;
         } else if (remoteId === settings.mac.toLowerCase()) {
-            weblog.complete('Device online, state : MAC2 MAC1 MAC0 STAT TIME VALV CH01 CH02 CH03 CH04');
+            weblog.complete('Device online, state : MAC2 MAC1 MAC0 STAT TIME VALV CHNL ???? ???? ???? STAT2');
             weblog.complete(`DevID ${id}       ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
             remoteStamp = binState[8] + (binState[9] * 256);
             online = true;
@@ -142,7 +155,7 @@ const server = http.createServer((req, res) => {
             return res.end('OK');
         } else {
             online = true;
-            weblog.complete('Device unknown state : MAC2 MAC1 MAC0 STAT TIME VALV CH01 CH02 CH03 CH04');
+            weblog.complete('Device unknown state : MAC2 MAC1 MAC0 STAT TIME VALV CHNL ???? ???? ???? STAT2');
             weblog.complete(`DevID ${id}       ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
         }
     } else {
@@ -181,8 +194,20 @@ wss.on('connection', (ws) => {
 
 
 function checkTimeout() {
+    let dbg = '';
+    let i = 0;
     timeStamp += 1;
     weblog.debug(`Watchdog : time:${timeStamp}/${remoteStamp}`);
+    for(i in valves) {
+	let t = parseInt(valves[i]);
+	if(t > timeStamp) {
+            dbg += `V${i}:${t - timeStamp} `;
+	} else {
+            dbg += `V${i}:OFF `;
+	    valves[i] = 0;
+        }
+    }
+    weblog.debug(`VALVES : ${dbg}`);
     sendPing(wss.clients);
     // msgTimestamp(timeStamp);
 }
@@ -224,8 +249,8 @@ function sendRawMessage(clients, msg) {
 function sendMessage(clients, event, data, channel = settings.mac) {
     clients.forEach((wsClient) => {
         wslog.pending(`Sending new message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')}`);
-        wslog.debug(JSON.stringify({ event, data: `\'${data}\'`, channel: channel.toLowerCase() }));
-        wsClient.send(JSON.stringify({ event, data: `\'${data}\'`, channel: channel.toLowerCase() }));
+        wslog.debug(JSON.stringify({ event, data: `\"${data}\"`, channel: channel.toLowerCase() }));
+        wsClient.send(JSON.stringify({ event, data: `\"${data}\"`, channel: channel.toLowerCase() }));
     });
 }
 
@@ -240,22 +265,30 @@ function sendLongMessage(clients, event, data, channel = settings.mac) {
     });
 }
 
-function constructEvent(typ, cmd, channel, min) {
-    if (channel < 1 || channel > 8) {
-        weblog.error('Channel must be between 1 and 8');
+function constructEvent(typ, channel, min) {
+    let dbg = '';
+    let i = 0;
 
-        return undefined;
-    }
     const ev = {
         event: typ,
     };
 
     const buffer = Buffer.alloc(18);
-    if (min > 0) {
-        buffer.writeUInt16LE(parseInt(min, 10) + timeStamp, 2 * channel);
-    }
+
     buffer.writeUInt16LE(parseInt(settings.valveId, 16));
-    ev.data = `\'${buffer.toString('base64')}\'`;
+
+    for(i in valves) {
+	let t = parseInt(valves[i]);
+	if(t > timeStamp) {
+            dbg += `V${i}:${t - timeStamp} `;
+            buffer.writeUInt16LE(parseInt(t), 2 * i);
+	} else {
+            dbg += `V${i}:OFF `;
+	    valves[i] = 0;
+        }
+    }
+    wslog.debug(`VALVES : ${dbg}`);
+    ev.data = `\"${buffer.toString('base64')}\"`;
     ev.channel = settings.mac.toLowerCase();
     wslog.debug(`Constructed msg : ${JSON.stringify(ev)}`);
     weblog.complete(`Sent buffer ${buffer.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
@@ -268,13 +301,9 @@ function msgSchedDay(day) {
     sendLongMessage(wss.clients, m, 0);
 }
 
-function msgManualSched(cmd, channel, time) {
-    if (channel < 1 || channel > 8) {
-        weblog.error('Channel must be between 1 and 8');
-
-        return ('Channel must be between 1 and 8');
-    }
-    const ev = constructEvent('manual_sched', cmd, channel, time);
+function msgManualSched(channel, time) {
+    weblog.complete(`Updating valve state ${valves}`);
+    const ev = constructEvent('manual_sched');
     sendRawMessage(wss.clients, JSON.stringify(ev));
 
     return true;
@@ -283,12 +312,13 @@ function msgManualSched(cmd, channel, time) {
 function msgTimestamp(time, extra = 0) {
     const b = Buffer.alloc(3);
     b.writeUInt16LE(parseInt(time, 10));
-    b.writeInt8(extra, 2);
+    b.writeInt8(0, 2);
+    weblog.complete(`Sent buffer ${b.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
     sendMessage(wss.clients, 'timestamp', b.toString('base64'), settings.mac);
 }
 
 function msgHashkey(key) {
-    sendMessage(wss.clients, 'hash_key', `\'${key}\'`, settings.mac);
+    sendMessage(wss.clients, 'hash_key', `\"${key}\"`, settings.mac);
 }
 
 function msgRevReq() {
