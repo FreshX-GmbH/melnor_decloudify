@@ -57,7 +57,7 @@ const server = http.createServer((req, res) => {
         return res.end('Device not connected (yet).');
     }
     // Melnor Submit route
-    if (req.url.startsWith('/submit')) {
+    else if (req.url.startsWith('/submit')) {
         const id = req.url.replace(/.*idhash=/, '').replace(/.message.*/, '');
         state = req.url.replace(/.*message=/, '');
         let binState;
@@ -145,6 +145,8 @@ const server = http.createServer((req, res) => {
             weblog.complete('Device unknown state : MAC2 MAC1 MAC0 STAT TIME VALV CH01 CH02 CH03 CH04');
             weblog.complete(`DevID ${id}       ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
         }
+    } else {
+        weblog.complete('Ignoring request', req.url);
     }
 
     return res.end('OK');
