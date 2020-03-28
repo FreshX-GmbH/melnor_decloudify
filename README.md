@@ -1,6 +1,6 @@
 # Warning
 
-This is code under development and not yet 100% functional. As of 03/2020 you can control one channel at a time via the REST api but it is not stable yet, since the protocol is restarting the handshake occasionally.  If you have questions or want to discuss the protocol contact me at kai+melnor at freshx dot de.
+This is code under development and not yet 100% functional. As of 04/2020 you can control all channels via the REST api but it is not tested enough yet.
 
 # Intro
 
@@ -8,7 +8,7 @@ This replaces the wifiaquatimer.com cloud interface of the Melnor 4 channel Aqua
 
 This is done by DNS Spoofing the cloud entries and providing a compatible interface to the Smart Device.
 
-Our code provides a simple rest API and CLI which allows you to run the Water Timer completely on premise without internet or cloud connection.
+Our code provides a simple rest API and CLI which allows you to run the Water Timer completely on premise without internet or cloud connection. (We basically simulate a very basic pusherapp API server)
 
 *Please note* : we acquired this device because it is notorically insecure (only running http and WS) so it was clear we could easily reverse engineer it an run it local only. We advise you not to use the device with the RainCloud (it is very outdated from look and feel, completing our picture), its insecure and easily hackable, the vendor did not put too much effort into the end-user security and safety.
 
@@ -45,6 +45,10 @@ http://<IP of your decloudifier>/REST?channel=2&min=0
 
 channel = 0,1,2,3
 min = 0 - ??? (600?)
+
+Get current valve state (as our service is seeing it, not yet checked with the device status itself
+
+http://<IP of your decloudifier>/REST
 
 # How it works
 

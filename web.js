@@ -15,6 +15,8 @@ const restlog = QLog.scope('REST');
 const wss = new WebSocket.Server({ noServer: true });
 
 const settings = require('./settings.json');
+let channels = [];
+let channel = settings.mac.toLowerCase();
 
 let timeStamp = 0;
 let remoteStamp = 0;
@@ -29,6 +31,12 @@ let valveTimes = [ 0, 0, 0, 0, 0, 0, 0 ];
 const server = http.createServer((req, res) => {
     weblog.debug('New request : ', req.url);
     // Our REST server
+    if (req.url.startsWith('/app/')) {
+        const opts = querystring.parse(req.url.replace(/.*app./, '').replace(/\?/, '&'));
+        restlog.debug('New Pusher client connected with opts', JSON.stringify(opts));
+	// /app/3fc4c501186e141227fb?client=melnor&version=1.0&protocol=6
+        return res.end('OK');
+    }
     if (req.url.startsWith('/REST')) {
         const opts = querystring.parse(req.url.replace(/.*REST./, '').replace(/\?/, '&'));
         restlog.debug('Rest API call with opts', JSON.stringify(opts));
@@ -83,11 +91,12 @@ const server = http.createServer((req, res) => {
             binState = Buffer.from(state, 'base64');
         }
 
+	// remoteId = channel (00000000, actual macID oder ffffffffff)
         const remoteId = `${binState[5].toString(16)}${binState[4].toString(16)}${binState[3].toString(16)}` +
             `${binState[2].toString(16)}${binState[1].toString(16)}${binState[0].toString(16)}`;
         // First message from device
-        if (id === '0000000000') {
-            weblog.complete(`Received initial state ${remoteId} ->  ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
+        if (id === '0000000000' || id === 'ffffffffff') {
+            weblog.complete(`Received submit for channel ${remoteId} ->  ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
             remoteStamp = binState[8] + (binState[9] * 256);
             timeStamp = remoteStamp;
             // TODO : generate random hash_key?
@@ -96,6 +105,9 @@ const server = http.createServer((req, res) => {
             return res.end('OK');
         }
 
+        if (id === '0000000000' || id === 'ffffffffff') {
+            return res.end('OK');
+	}
 
         if (wsConnected === false) {
             wslog.error('Device not in sync. Please reset or wait.');
@@ -141,12 +153,12 @@ const server = http.createServer((req, res) => {
             return res.end('OK');
         }
         if (remoteId === 'ffffffffffff') {
-            weblog.complete('Device online with errors, state : MAC2 MAC1 MAC0 STAT TIME VALV CHNL ???? ???? ???? STAT2');
+            weblog.complete('Device online with errors, state : MAC2 MAC1 MAC0 STAT TIME V-ID VALV ???? ???? ???? STAT2');
             weblog.complete(`DevID ${id}                   ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
             remoteStamp = binState[8] + (binState[9] * 256);
             online = true;
         } else if (remoteId === settings.mac.toLowerCase()) {
-            weblog.complete('Device online, state : MAC2 MAC1 MAC0 STAT TIME VALV CHNL ???? ???? ???? STAT2');
+            weblog.complete('Device online, state : MAC2 MAC1 MAC0 STAT TIME V-ID VALV ???? ???? ???? STAT2');
             weblog.complete(`DevID ${id}       ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
             remoteStamp = binState[8] + (binState[9] * 256);
             online = true;
@@ -155,7 +167,7 @@ const server = http.createServer((req, res) => {
             return res.end('OK');
         } else {
             online = true;
-            weblog.complete('Device unknown state : MAC2 MAC1 MAC0 STAT TIME VALV CHNL ???? ???? ???? STAT2');
+            weblog.complete('Device unknown state : MAC2 MAC1 MAC0 STAT TIME V-ID VALV ???? ???? ???? STAT2');
             weblog.complete(`DevID ${id}       ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
         }
     } else {
@@ -166,8 +178,9 @@ const server = http.createServer((req, res) => {
 });
 
 wss.on('connection', (ws) => {
+    let port = ws._socket._peername.port;
     wsConnected = true;
-    wslog.debug('New WS connection established');
+    wslog.debug(`New WS connection established from port id ${port}`);
     ws.on('pong', (mess) => {
         wslog.pending(`received a pong : ${mess}`);
     });
@@ -177,11 +190,19 @@ wss.on('connection', (ws) => {
 
     ws.on('message', (data) => {
         const msg = JSON.parse(data);
-        wslog.debug('New WS event', msg.event);
+        wslog.debug(`New WS event ${msg.event} for port id ${port}`);
         switch (msg.event) {
+            case 'pusher:ping':
+                wslog.pending('Received pusher ping on client', msg);
+                sendMessage(wss.clients, 'pusher:pong', '{}', settings.mac);
+               // ssendMessage(ws, 'pusher:pong', '{}', settings.mac);
+		break;
             case 'pusher:subscribe':
-                wslog.pending('Received subscribe request.');
+                wslog.pending('Received subscribe request for channel',msg.data.channel,'extra data', msg.data.channel_data);
+		// TODO : push all subscribers into an array and deliver to all of them
+		channels[msg.data.channel] = ws;
                 sendMessage(wss.clients, 'pusher_internal:subscription_succeeded', '{}', settings.mac);
+                // sendMessage(ws, 'pusher_internal:subscription_succeeded', '{}', settings.mac);
                 online = false;
                 SM = 0;
                 break;
@@ -218,14 +239,15 @@ exports.start = function () {
     });
 
     server.on('upgrade', (req, socket, head) => {
-        weblog.success('WebSocket upgrade request from', socket.remoteAddress.replace(/.*:/, ''));
-        if (req.headers.upgrade !== 'WebSocket') {
+        weblog.success(`WebSocket upgrade request from ${socket.remoteAddress.replace(/.*:/, '')}`);
+        if (req.headers.upgrade !== 'WebSocket' && req.headers.upgrade !== 'websocket') {
             console.log('Bad request:', req.headers);
             socket.end('HTTP/1.1 400 Bad Request');
 
             return;
         }
         wss.handleUpgrade(req, socket, head, (ws) => {
+	    let port = ws._socket._peername.port;
             msgConnectionEstablished();
             wss.emit('connection', ws, req);
         });
@@ -234,35 +256,73 @@ exports.start = function () {
 
 // eslint-disable-next-line no-unused-vars
 function sendPing(clients) {
-    clients.forEach((wsClient) => {
-        wsClient.ping('', {}, true);
-    });
+    if (channels[channel]) {
+        wslog.pending(`Sending ping response only to channel ${channel}`);
+        channels[channel].ping(() => {
+		wslog.complete('Sent ping response.') 
+	});
+    } else {
+        clients.forEach((wsClient) => {
+            wsClient.ping( () => { 
+		wslog.complete('Sent ping response.') 
+	    });
+        });
+    }
 }
 
 function sendRawMessage(clients, msg) {
-    clients.forEach((wsClient) => {
-        wslog.pending(`Sending RAW message : ${msg}`);
-        wsClient.send(msg);
-    });
+    if (channels[channel.toLowerCase()]) {
+        wslog.pending(`Sending RAW message : ${msg} only to channel ${channel}`);
+        channels[channel].send(msg);
+    } else {
+        clients.forEach((wsClient) => {
+            wslog.pending(`Sending RAW message : ${msg}, ${wsClient}`);
+            wsClient.send(msg);
+        });
+    }
 }
 
-function sendMessage(clients, event, data, channel = settings.mac) {
-    clients.forEach((wsClient) => {
-        wslog.pending(`Sending new message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')}`);
-        wslog.debug(JSON.stringify({ event, data: `\"${data}\"`, channel: channel.toLowerCase() }));
-        wsClient.send(JSON.stringify({ event, data: `\"${data}\"`, channel: channel.toLowerCase() }));
-    });
+function ssendMessage(wsClient, event, data, channel = settings.mac) {
+    let port = wsClient._socket._peername.port;
+    wslog.pending(`Sending new message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')} port ${port}`);
+    wslog.debug(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
+    wsClient.send(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
 }
 
-function sendLongMessage(clients, event, data, channel = settings.mac) {
-    clients.forEach((wsClient) => {
-        const buffer = Buffer.alloc(134);
-        buffer.writeUInt16LE(parseInt(settings.valveId, 16));
-        buffer.writeUInt16LE(data, 4);
-        wslog.pending(`Sending long message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')}`);
+function sendMessage(clients, event, data, channel = settings.mac.toLowerCase()) {
+    if (channels[channel]) {
+	let wsClient=channels[channel];
+	let port = wsClient._socket._peername.port;
+        wslog.pending(`Sending new message : ${event} only to ${wsClient._socket.remoteAddress.replace(/.*:/, '')} port ${port}`);
+        wslog.debug(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
+        channels[channel].send(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
+    } else {
+        clients.forEach((wsClient) => {
+	    let port = wsClient._socket._peername.port;
+            wslog.pending(`Sending new message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')} port ${port}`);
+            wslog.debug(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
+            wsClient.send(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
+        });
+    }
+}
+
+function sendLongMessage(clients, event, data, channel = settings.mac.toLowerCase()) {
+    const buffer = Buffer.alloc(134);
+    buffer.writeUInt16LE(parseInt(settings.valveId, 16));
+    buffer.writeUInt16LE(data, 4);
+    if (channels[channel]) {
+        let wsClient=channels[channel];
+	let port = wsClient._socket._peername.port;
+        wslog.pending(`Sending long message : ${event} only to ${wsClient._socket.remoteAddress.replace(/.*:/, '')}`);
         wslog.complete(`Sent buffer ${buffer.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
-        wsClient.send(JSON.stringify({ event, data: buffer.toString('base64'), channel: channel.toLowerCase() }));
-    });
+        channels[channel].send(JSON.stringify({ event, data: buffer.toString('base64'), channel: channel.toLowerCase() }));
+    } else {
+        clients.forEach((wsClient) => {
+            wslog.pending(`Sending long message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')}`);
+            wslog.complete(`Sent buffer ${buffer.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
+            wsClient.send(JSON.stringify({ event, data: buffer.toString('base64'), channel: channel.toLowerCase() }));
+        });
+    }
 }
 
 function constructEvent(typ, channel, min) {
@@ -326,5 +386,7 @@ function msgRevReq() {
 }
 
 function msgConnectionEstablished() {
-    sendMessage(wss.clients, 'pusher:connection_established', '{\'socket_id\':\'265216.826472\'}');
+    sendMessage(wss.clients, 'pusher:connection_established', '{\"socket_id\":\"265216.826472\"}');
 }
+
+console.log('Please run node actor.js');
