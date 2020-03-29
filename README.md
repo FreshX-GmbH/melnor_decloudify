@@ -53,9 +53,11 @@ Turn channel 2 on 60 minutes : `http://<IP of your decloudifier>/REST?channel=2&
 
 Turn channel 2 off (this does not work yet, so set the valve to the minimum of 1) : 
 
-```http://<IP of your decloudifier>/REST?channel=2&min=1
+```
+http://<IP of your decloudifier>/REST?channel=2&min=1
 channel = 0,1,2,3
-min = 0 - ??? (600?)```
+min = 0 - ??? (600?)
+```
 
 Get current valve state (as our service is seeing it, not yet checked with the device status itself : `http://<IP of your decloudifier>/REST`
 
