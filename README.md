@@ -17,6 +17,19 @@ Have fun ...
 
 This is code under development and not yet 100% functional. As of 04/2020 you can control all channels via the REST api but it is not tested enough yet.
 
+# TODO list
+
+* [x] Spoof DNS
+* [x] sniff and decode original traffic
+* [x] simulate WebSocket Server and HTTP Server
+* [x] create REST API
+* [x] implement proprietary melnor binary protocol
+* [ ] cleanup and make nice code
+* [ ] write client simulator tool
+* [ ] OpenHab2 Connector
+* [ ] add nginx proxy/vhost config to run on higher ports
+* [ ] Documentatoion
+
 # The settings
 
 You need to provide a valid settings.json, see settings.json.template for an example.
