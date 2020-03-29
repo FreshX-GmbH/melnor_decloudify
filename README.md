@@ -49,7 +49,7 @@ All fields are mandatory
 
 # The REST API
 
-Turn channel 2 on 60 minutes : `http://<IP of your decloudifier>/REST?channel=2&min=60
+Turn channel 2 on 60 minutes : `http://<IP of your decloudifier>/REST?channel=2&min=60`
 
 Turn channel 2 off (this does not work yet, so set the valve to the minimum of 1)
 
