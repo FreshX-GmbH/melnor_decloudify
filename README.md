@@ -1,6 +1,3 @@
-# Warning
-
-This is code under development and not yet 100% functional. As of 04/2020 you can control all channels via the REST api but it is not tested enough yet.
 
 # Intro
 
@@ -15,6 +12,10 @@ Our code provides a simple rest API and CLI which allows you to run the Water Ti
 *Please note further* : the basic device (without the cloud functionality) seems pretty nice to us though. Just the network and cloud implementation was done without any love or care.
 
 Have fun ...
+
+# Warning
+
+This is code under development and not yet 100% functional. As of 04/2020 you can control all channels via the REST api but it is not tested enough yet.
 
 # The settings
 
@@ -35,9 +36,7 @@ All fields are mandatory
 
 # The REST API
 
-Turn channel 2 on 60 minutes
-
-http://<IP of your decloudifier>/REST?channel=2&min=60
+Turn channel 2 on 60 minutes : `http://<IP of your decloudifier>/REST?channel=2&min=60
 
 Turn channel 2 off (this does not work yet, so set the valve to the minimum of 1)
 
