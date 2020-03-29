@@ -18,7 +18,7 @@ const { QLog } = require('quanto-commons');
 // STAT = 03 = 0x1 + 0x2 -> connected
 // STAT = 0C = 12 = 0x4 + 0x8
 
-// What is the last INT? 
+// What is the last INT?
 // STAT2 = 0x0 ??
 // STAT2 = 0x2 ??
 
@@ -59,7 +59,7 @@ const { QLog } = require('quanto-commons');
 // 0x7 = 0x1 + 0x2 + 0x4 + 0x8
 
 // manual_sched events sent to the device to turn on / off valves
-// 
+//
 // {"event":"manual_sched","data":"\"IMQAAAAAAAAAAAAAAAAAAAAA\"","channel":settings.mac}
 // IMQAAAAAAAAAAAAAAAAAAAAA
 // 0000000 e2 dc 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00

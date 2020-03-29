@@ -1,5 +1,11 @@
 'use strict';
 
+// TODO :
+// - online state flag?
+// - use a subscriber array
+// - throw out old stuff
+// - encapsulate a client (defined by channel,port) connection into an object
+
 /* eslint no-use-before-define: "off" */
 
 const http = require('http');
@@ -15,8 +21,9 @@ const restlog = QLog.scope('REST');
 const wss = new WebSocket.Server({ noServer: true });
 
 const settings = require('./settings.json');
-let channels = [];
-let channel = settings.mac.toLowerCase();
+
+const channels = [];
+const channel = settings.mac.toLowerCase();
 
 let timeStamp = 0;
 let remoteStamp = 0;
@@ -25,8 +32,8 @@ let online = false;
 let state = 0;
 let SM = 0;
 let iv;
-let valves = [ 0, 0, 0, 0, 0, 0, 0, 0 ];
-let valveTimes = [ 0, 0, 0, 0, 0, 0, 0 ];
+const valves = [0, 0, 0, 0, 0, 0, 0, 0];
+// const valveTimes = [ 0, 0, 0, 0, 0, 0, 0 ];
 
 const server = http.createServer((req, res) => {
     weblog.debug('New request : ', req.url);
@@ -34,51 +41,52 @@ const server = http.createServer((req, res) => {
     if (req.url.startsWith('/app/')) {
         const opts = querystring.parse(req.url.replace(/.*app./, '').replace(/\?/, '&'));
         restlog.debug('New Pusher client connected with opts', JSON.stringify(opts));
-	// /app/3fc4c501186e141227fb?client=melnor&version=1.0&protocol=6
+        // /app/3fc4c501186e141227fb?client=melnor&version=1.0&protocol=6
+
         return res.end('OK');
     }
     if (req.url.startsWith('/REST')) {
         const opts = querystring.parse(req.url.replace(/.*REST./, '').replace(/\?/, '&'));
         restlog.debug('Rest API call with opts', JSON.stringify(opts));
-	if(!opts.channel) {
-
-    	    let dbg = '';
-            let i = 0;
-    	    for(i in valves) {
+        if (!opts.channel) {
+            let dbg = '';
+            // eslint-disable-next-line guard-for-in
+            for (let i = 0; i < valves.length; i++) {
                 dbg += ` "V${i}": "${valves[i]}",`;
-    	    }
-	    dbg += ` "systime": "${timeStamp}"`;
-	    dbg.replace(/,,,/, '');
+            }
+            dbg += ` "systime": "${timeStamp}"`;
+            dbg.replace(/,,,/, '');
+
             return res.end(`{ "status": "OK", "valves": { ${dbg} }}`);
-	}
-        let ch = parseInt(opts.channel,10);
+        }
+        const valve = parseInt(opts.channel, 10);
         if (opts.min && opts.min > 0) {
-            restlog.pending(`SET CH ${opts.channel} to ${opts.min} minutes.`);
-	    valves[ch] = parseInt(opts.min, 10) + timeStamp;
-            wslog.pending('Turning ON channel', opts.channel, ' for runtime', opts.min);
-	    if(online) {
-                const r = msgManualSched(opts.channel, valves[ch]);
+            restlog.pending(`SET CH ${valve} to ${opts.min} minutes.`);
+            valves[valve] = parseInt(opts.min, 10) + timeStamp;
+            wslog.pending(`Turning ON channel ${valve} for runtime ${opts.min}`);
+            if (online) {
+                const r = msgManualSched(opts.channel, valves[valve]);
                 if (r !== true) {
                     return res.end(`{"status" : "err", "msg": "${r}"`);
                 }
-        	return res.end('{ "status": "OK", "msg": "value updated"}');
+
+                return res.end('{ "status": "OK", "msg": "value updated"}');
             }
         } else {
-            restlog.pending(`SET CH ${opts.channel} to.`);
-            wslog.pending('Sending an OFF message for channel', opts.channel);
-	    valves[ch];
-	    if(online) {
-                const r = msgManualSched(opts.channel, 0);
+            restlog.pending(`SET CH ${valve} to OFF.`);
+            wslog.pending(`Sending an OFF message for valve ${valve}`);
+            // valves[valve];
+            if (online) {
+                const r = msgManualSched(valve, 0);
                 if (r !== true) {
                     return res.end(`{"status" : "err", "msg": "${r}"`);
                 }
             }
         }
 
-       	return res.end('{ "status": "OK", "msg": "value set to 0." }');
-    }
-    // Melnor Submit route
-    else if (req.url.startsWith('/submit')) {
+        return res.end('{ "status": "OK", "msg": "value set to 0." }');
+    } else if (req.url.startsWith('/submit')) {
+        // Melnor Submit route
         const id = req.url.replace(/.*idhash=/, '').replace(/.message.*/, '').replace(/'/g, '');
         state = req.url.replace(/.*message=/, '');
         let binState;
@@ -91,7 +99,7 @@ const server = http.createServer((req, res) => {
             binState = Buffer.from(state, 'base64');
         }
 
-	// remoteId = channel (00000000, actual macID oder ffffffffff)
+        // remoteId = channel (00000000, actual macID oder ffffffffff)
         const remoteId = `${binState[5].toString(16)}${binState[4].toString(16)}${binState[3].toString(16)}` +
             `${binState[2].toString(16)}${binState[1].toString(16)}${binState[0].toString(16)}`;
         // First message from device
@@ -107,7 +115,7 @@ const server = http.createServer((req, res) => {
 
         if (id === '0000000000' || id === 'ffffffffff') {
             return res.end('OK');
-	}
+        }
 
         if (wsConnected === false) {
             wslog.error('Device not in sync. Please reset or wait.');
@@ -178,7 +186,7 @@ const server = http.createServer((req, res) => {
 });
 
 wss.on('connection', (ws) => {
-    let port = ws._socket._peername.port;
+    const { port } = ws._socket._peername;
     wsConnected = true;
     wslog.debug(`New WS connection established from port id ${port}`);
     ws.on('pong', (mess) => {
@@ -195,12 +203,12 @@ wss.on('connection', (ws) => {
             case 'pusher:ping':
                 wslog.pending('Received pusher ping on client', msg);
                 sendMessage(wss.clients, 'pusher:pong', '{}', settings.mac);
-               // ssendMessage(ws, 'pusher:pong', '{}', settings.mac);
-		break;
+                // ssendMessage(ws, 'pusher:pong', '{}', settings.mac);
+                break;
             case 'pusher:subscribe':
-                wslog.pending('Received subscribe request for channel',msg.data.channel,'extra data', msg.data.channel_data);
-		// TODO : push all subscribers into an array and deliver to all of them
-		channels[msg.data.channel] = ws;
+                wslog.pending(`Received subscribe request for channel ${msg.data.channel} with extra data ${msg.data.channel_data}`);
+                // TODO : push all subscribers into an array and deliver to all of them
+                channels[msg.data.channel] = ws;
                 sendMessage(wss.clients, 'pusher_internal:subscription_succeeded', '{}', settings.mac);
                 // sendMessage(ws, 'pusher_internal:subscription_succeeded', '{}', settings.mac);
                 online = false;
@@ -213,19 +221,18 @@ wss.on('connection', (ws) => {
     });
 });
 
-
 function checkTimeout() {
     let dbg = '';
-    let i = 0;
     timeStamp += 1;
     weblog.debug(`Watchdog : time:${timeStamp}/${remoteStamp}`);
-    for(i in valves) {
-	let t = parseInt(valves[i]);
-	if(t > timeStamp) {
+    for (let i = 0; i < valves.length; i++) {
+    // for(i in valves) {
+        const t = parseInt(valves[i], 10);
+        if (t > timeStamp) {
             dbg += `V${i}:${t - timeStamp} `;
-	} else {
+        } else {
             dbg += `V${i}:OFF `;
-	    valves[i] = 0;
+            valves[i] = 0;
         }
     }
     weblog.debug(`VALVES : ${dbg}`);
@@ -247,7 +254,7 @@ exports.start = function () {
             return;
         }
         wss.handleUpgrade(req, socket, head, (ws) => {
-	    let port = ws._socket._peername.port;
+            // const { port } = ws._socket._peername;
             msgConnectionEstablished();
             wss.emit('connection', ws, req);
         });
@@ -259,13 +266,13 @@ function sendPing(clients) {
     if (channels[channel]) {
         wslog.pending(`Sending ping response only to channel ${channel}`);
         channels[channel].ping(() => {
-		wslog.complete('Sent ping response.') 
-	});
+            wslog.complete('Sent ping response.');
+        });
     } else {
         clients.forEach((wsClient) => {
-            wsClient.ping( () => { 
-		wslog.complete('Sent ping response.') 
-	    });
+            wsClient.ping(() => {
+                wslog.complete('Sent ping response.');
+            });
         });
     }
 }
@@ -282,23 +289,16 @@ function sendRawMessage(clients, msg) {
     }
 }
 
-function ssendMessage(wsClient, event, data, channel = settings.mac) {
-    let port = wsClient._socket._peername.port;
-    wslog.pending(`Sending new message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')} port ${port}`);
-    wslog.debug(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
-    wsClient.send(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
-}
-
-function sendMessage(clients, event, data, channel = settings.mac.toLowerCase()) {
-    if (channels[channel]) {
-	let wsClient=channels[channel];
-	let port = wsClient._socket._peername.port;
+function sendMessage(clients, event, data, _channel = settings.mac.toLowerCase()) {
+    if (channels[_channel]) {
+        const wsClient = channels[_channel];
+        const { port } = wsClient._socket._peername;
         wslog.pending(`Sending new message : ${event} only to ${wsClient._socket.remoteAddress.replace(/.*:/, '')} port ${port}`);
         wslog.debug(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
         channels[channel].send(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
     } else {
         clients.forEach((wsClient) => {
-	    let port = wsClient._socket._peername.port;
+            const { port } = wsClient._socket._peername;
             wslog.pending(`Sending new message : ${event} to ${wsClient._socket.remoteAddress.replace(/.*:/, '')} port ${port}`);
             wslog.debug(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
             wsClient.send(JSON.stringify({ event, data: `${data}`, channel: channel.toLowerCase() }));
@@ -306,13 +306,13 @@ function sendMessage(clients, event, data, channel = settings.mac.toLowerCase())
     }
 }
 
-function sendLongMessage(clients, event, data, channel = settings.mac.toLowerCase()) {
+function sendLongMessage(clients, event, data, _channel = settings.mac.toLowerCase()) {
     const buffer = Buffer.alloc(134);
     buffer.writeUInt16LE(parseInt(settings.valveId, 16));
     buffer.writeUInt16LE(data, 4);
-    if (channels[channel]) {
-        let wsClient=channels[channel];
-	let port = wsClient._socket._peername.port;
+    if (channels[_channel]) {
+        const wsClient = channels[_channel];
+        // const { port } = wsClient._socket._peername;
         wslog.pending(`Sending long message : ${event} only to ${wsClient._socket.remoteAddress.replace(/.*:/, '')}`);
         wslog.complete(`Sent buffer ${buffer.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
         channels[channel].send(JSON.stringify({ event, data: buffer.toString('base64'), channel: channel.toLowerCase() }));
@@ -325,26 +325,27 @@ function sendLongMessage(clients, event, data, channel = settings.mac.toLowerCas
     }
 }
 
-function constructEvent(typ, channel, min) {
+// Sent out the current valve state as manual scheduling request
+function msgManualSched() {
+    weblog.complete(`Updating valve state ${valves}`);
     let dbg = '';
-    let i = 0;
 
     const ev = {
-        event: typ,
+        event: 'manual_sched',
     };
 
     const buffer = Buffer.alloc(18);
 
     buffer.writeUInt16LE(parseInt(settings.valveId, 16));
 
-    for(i in valves) {
-	let t = parseInt(valves[i]);
-	if(t > timeStamp) {
+    for (let i = 0; i < valves.length; i++) {
+        const t = parseInt(valves[i], 10);
+        if (t > timeStamp) {
             dbg += `V${i}:${t - timeStamp} `;
-            buffer.writeUInt16LE(parseInt(t), 2 * i);
-	} else {
+            buffer.writeUInt16LE(parseInt(t, 10), 2 * i);
+        } else {
             dbg += `V${i}:OFF `;
-	    valves[i] = 0;
+            valves[i] = 0;
         }
     }
     wslog.debug(`VALVES : ${dbg}`);
@@ -353,7 +354,8 @@ function constructEvent(typ, channel, min) {
     wslog.debug(`Constructed msg : ${JSON.stringify(ev)}`);
     weblog.complete(`Sent buffer ${buffer.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
 
-    return ev;
+    sendRawMessage(wss.clients, JSON.stringify(ev));
+    // return ev;
 }
 
 function msgSchedDay(day) {
@@ -361,15 +363,7 @@ function msgSchedDay(day) {
     sendLongMessage(wss.clients, m, 0);
 }
 
-function msgManualSched(channel, time) {
-    weblog.complete(`Updating valve state ${valves}`);
-    const ev = constructEvent('manual_sched');
-    sendRawMessage(wss.clients, JSON.stringify(ev));
-
-    return true;
-}
-
-function msgTimestamp(time, extra = 0) {
+function msgTimestamp(time) {
     const b = Buffer.alloc(3);
     b.writeUInt16LE(parseInt(time, 10));
     b.writeInt8(0, 2);
