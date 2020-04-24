@@ -11,6 +11,7 @@
 const http = require('http');
 const WebSocket = require('ws');
 const querystring = require('querystring');
+const webview = require('./webview');
 
 const { QLog } = require('quanto-commons');
 
@@ -44,6 +45,9 @@ const server = http.createServer((req, res) => {
         // /app/3fc4c501186e141227fb?client=melnor&version=1.0&protocol=6
 
         return res.end('OK');
+    }
+    if (req.url.startsWith('/WEB')) {
+	return webview.handleWeb(req, res, weblog);
     }
     if (req.url.startsWith('/REST')) {
         const opts = querystring.parse(req.url.replace(/.*REST./, '').replace(/\?/, '&'));
