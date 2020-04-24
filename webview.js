@@ -4,9 +4,9 @@ const fs = require('fs');
 const handleWeb = function(req, res, log)
 {
     const opts = querystring.parse(req.url.replace(/.*REST./, '').replace(/\?/, '&'));
-    const path = Object.keys(opts)[0];
+    const path = Object.keys(opts)[0].replace(/WEB/, '').replace(/,/g, '');
     log.debug('WEB API call with opts', JSON.stringify(opts));
-    return fs.readFile(`./${path}`, (err, data) => {
+    return fs.readFile(`./web/${path}`, (err, data) => {
 	if(err) {
 	    log.error(err);
     	    return res.end(err.message);
