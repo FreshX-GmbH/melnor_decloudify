@@ -46,7 +46,7 @@ const server = http.createServer((req, res) => {
 
         return res.end('OK');
     }
-    if (req.url.startsWith('/WEB')) {
+    if (req.url === ('/') || req.url.startsWith('/WEB')) {
 	return webview.handleWeb(req, res, weblog);
     }
     if (req.url.startsWith('/REST')) {

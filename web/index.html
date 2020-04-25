@@ -19,45 +19,45 @@
                <div class="row">
                 <div class="col">
                   <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="customSwitch1">
-                    <label class="custom-control-label" for="customSwitch1">Valve 1</label>
+                    <input type="checkbox" class="custom-control-input" id="switch1" onclick="toggle(1);">
+                    <label class="custom-control-label" for="switch1">Valve 1</label>
                   </div>
                 </div>
                 <div class="col">
-                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="input1" placeholder="60 Minutes">
+                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="input1" placeholder="15 Minutes">
                 </div>
             </div>
                <div class="row">
                 <div class="col">
                   <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="customSwitch2">
-                    <label class="custom-control-label" for="customSwitch2">Valve 2</label>
+                    <input type="checkbox" class="custom-control-input" id="switch2" onclick="toggle(2);">
+                    <label class="custom-control-label" for="switch2">Valve 2</label>
                   </div>
                 </div>
                 <div class="col">
-                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="exampleFormControlInput1" placeholder="60 Minutes">
+                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="input2" placeholder="15 Minutes">
                 </div>
             </div>
                <div class="row">
                 <div class="col">
                   <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="customSwitch3">
-                    <label class="custom-control-label" for="customSwitch3">Valve 3</label>
+                    <input type="checkbox" class="custom-control-input" id="switch3" onclick="toggle(3);">
+                    <label class="custom-control-label" for="switch3">Valve 3</label>
                   </div>
                 </div>
                 <div class="col">
-                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="exampleFormControlInput1" placeholder="60 Minutes">
+                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="input3" placeholder="15 Minutes">
                 </div>
             </div>
                <div class="row">
                 <div class="col">
                   <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="customSwitch4">
-                    <label class="custom-control-label" for="customSwitch4">Valve 4</label>
+                    <input type="checkbox" class="custom-control-input" id="switch4" onclick="toggle(4);">
+                    <label class="custom-control-label" for="switch4">Valve 4</label>
                   </div>
                 </div>
                 <div class="col">
-                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" maxlength=4 id="exampleFormControlInput1" placeholder="60 Minutes">
+                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" maxlength=4 id="input4" placeholder="15 Minutes">
                 </div>
             </div>
 
@@ -65,5 +65,32 @@
         </div>
     </div>
 </div>
+<script>
+const xmlhttp = new XMLHttpRequest();
+
+xmlhttp.onreadystatechange = function() {
+  if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+    const response = xmlhttp.responseText; //if you need to do something with the returned value
+    console.log(response);
+  }
+}
+
+function toggle(valve) {
+	const iid = "input"+valve;
+	const sid = "switch"+valve;
+	const t = document.getElementById(iid);
+	const s = document.getElementById(sid);
+	const loc = window.location.hostname;
+	const protocol = location.protocol;
+	if(s.checked) {
+	   if(!t.value) t.value = 15;
+	   const url = `${protocol}//${loc}/REST?channel=${valve}&min=${t.value}`
+console.log(url);
+	   xmlhttp.open("GET", url, true);
+	   xmlhttp.send();
+	}
+	// console.log(valve, sid, t.value, s.checked);
+}
+</script>
 </body>
 </html>

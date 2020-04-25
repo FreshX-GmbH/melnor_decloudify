@@ -7,6 +7,9 @@ const handleWeb = function(req, res, log)
     const path = Object.keys(opts)[0].replace(/WEB/, '').replace(/,/g, '');
     log.debug('WEB API call with opts', JSON.stringify(opts));
     let file = './web/index.html';
+    if (req.url === '/') {
+        return res.end('<html><body><script>location.href="/WEB";</script></body></html>');
+    }
     if (req.url === '/WEB/bootstrap.min.css' ) {
         file = './web/bootstrap.min.css';
     }
