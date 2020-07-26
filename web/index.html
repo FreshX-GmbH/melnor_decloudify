@@ -2,89 +2,89 @@
 <html>
 <head>
   <link rel="stylesheet" href="/WEB/bootstrap.min.css">
-  <link rel="stylesheet" href="/WEB/fontawesome.min.css">
-  <link rel="stylesheet" href="/WEB/local.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.3, maximum-scale=1.3, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
 </head>
-<body class=active>
-<div class="container py-2">
-    <div class="row">
-        <div class="col-2">
-        </div>
-        <div class="col-6">
-            <h1 style="margin-top: 50px;" class="font-weight-light"><center>Melnor Decloudifier</center></h1>
-        </div>
-        <div class="col-4"></div>
-    </div>
+<body>
+<div class="container">
     <form>
-          <div class="form-group">
-            <div class="row" style="margin-top: 80px;">
-                <div class="col">
+         <div class="form-group">
+            <div class="row">
+                <div class="col">`
+                   <h2 style="margin-top: 10px;" class="font-weight-light"><center>Melnor Decloudifier</center></h1>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-9">
                   <div class="custom-control custom-switch">
                     <input type="checkbox" checked class="custom-control-input" id="switch6" onclick="toggleRefresh();" disabled>
-                    <label id='state' class="custom-control-label" for="switch6">State : </label>
+                    <label  id='state'class="custom-control-label" for="switch6">State : </label>
                   </div>
                 </div>
-                <div class="col" id='state'>
-		   <button type="button" class="btn btn-success btn-sm" style="width: 150px;" disabled>
-  		      Battery <span id='batt' class="badge badge-warning">??</span>
+                <div class="col-2" id='state'>
+		   <button type="button" class="btn btn-success" disabled>
+  		      <span id='batt' class="badge badge-warning">??</span>
 		   </button>
                 </div>
             </div>
-            <div class="row" style="margin-top: 50px;">
-                <div class="col">
+            <div class="row" style="margin-top: 40px;">
+                <div class="col-9">
                   <div class="custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input checkbox-2x" id="switch1" onclick="toggle(1);">
                     <label id='curr1' class="custom-control-label checkbox-2x" for="switch1">Valve 1</label>
                   </div>
                 </div>
-                <div class="col">
-                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="input1" placeholder="15 Minutes">
+                <div class="col-2">
+                  <input type="number" style="width: 70px;" class="input-group input-group-sm mb-3" id="input1" placeholder="15 Min">
                 </div>
             </div>
-            <div class="row" style="margin-top: 50px;">
-                <div class="col">
+            <div class="row" style="margin-top: 40px;">
+                <div class="col-9">
                   <div class="custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input" id="switch2" onclick="toggle(2);">
                     <label id='curr2' class="custom-control-label" for="switch2">Valve 2</label>
                   </div>
                 </div>
-                <div class="col">
-                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="input2" placeholder="15 Minutes">
+                <div class="col-2">
+                  <input type="number" style="width: 70px;" class="input-group input-group-sm mb-3" id="input2" placeholder="15 Min">
                 </div>
             </div>
-            <div class="row" style="margin-top: 50px;">
-                <div class="col">
+            <div class="row" style="margin-top: 40px;">
+                <div class="col-9">
                   <div class="custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input" id="switch3" onclick="toggle(3);">
                     <label id='curr3' class="custom-control-label" for="switch3">Valve 3</label>
                   </div>
                 </div>
-                <div class="col">
-                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="input3" placeholder="15 Minutes">
+                <div class="col-2">
+                  <input type="number" style="width: 70px;" class="input-group input-group-sm mb-3" id="input3" placeholder="15 Min">
                 </div>
             </div>
-            <div class="row" style="margin-top: 50px;">
-                <div class="col">
+            <div class="row" style="margin-top: 40px;">
+                <div class="col-9">
                   <div class="custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input" id="switch4" onclick="toggle(4);">
                     <label id='curr4' class="custom-control-label" for="switch4">Valve 4</label>
                   </div>
                 </div>
-                <div class="col">
-                  <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" maxlength=4 id="input4" placeholder="15 Minutes">
+                <div class="col-1">
+                  <input type="number" style="width: 70px;" class="input-group input-group-sm mb-3" maxlength=4 id="input4" placeholder="15 Min">
                 </div>
             </div>
-            <div class="row" style="margin-top: 50px;">
-                <div class="col">
+            <div class="row" style="margin-top: 40px;">
+                <div class="col-9">
                   <div class="custom-control custom-switch">
                     <input type="checkbox" checked class="custom-control-input" id="switch5" onclick="toggleRefresh();">
                     <label id='curr5' class="custom-control-label" for="switch5">AutoRefresh</label>
                   </div>
                 </div>
-                <div class="col">
-  		  <button type="button" class="btn btn-warning btn-sm" style="width: 150px;">Submit all valves</button>
+                <div class="col-2">
+  		  <button type="button" class="btn btn-warning btn-sm" style="width: 70px;">All</button>
                 </div>
             </div>
+        </div>
     <form>
 </div>
 
@@ -210,6 +210,7 @@ function updateState() {
 }
 updateState();
 toggleRefresh();
+
 </script>
 </body>
 </html>
