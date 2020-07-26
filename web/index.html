@@ -2,77 +2,165 @@
 <html>
 <head>
   <link rel="stylesheet" href="/WEB/bootstrap.min.css">
+  <link rel="stylesheet" href="/WEB/fontawesome.min.css">
+  <link rel="stylesheet" href="/WEB/local.css">
 </head>
-<body>
+<body class=active>
 <div class="container py-2">
     <div class="row">
-        <div class="col">
-            <h2 class="font-weight-light"><center>Melnor Decloudifier</center></h2>
+        <div class="col-2">
         </div>
-        <div class="col"></div>
+        <div class="col-6">
+            <h1 style="margin-top: 50px;" class="font-weight-light"><center>Melnor Decloudifier</center></h1>
+        </div>
+        <div class="col-4"></div>
     </div>
-    <div class="row">
-        <div class="col">
-            <p>
-             <form>
-              <div class="form-group">
-               <div class="row">
+    <form>
+          <div class="form-group">
+            <div class="row" style="margin-top: 80px;">
                 <div class="col">
                   <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="switch1" onclick="toggle(1);">
-                    <label class="custom-control-label" for="switch1">Valve 1</label>
+                    <input type="checkbox" checked class="custom-control-input" id="switch6" onclick="toggleRefresh();" disabled>
+                    <label id='state' class="custom-control-label" for="switch6">State : </label>
+                  </div>
+                </div>
+                <div class="col" id='state'>
+		   <button type="button" class="btn btn-success btn-sm" style="width: 150px;" disabled>
+  		      Battery <span id='batt' class="badge badge-warning">??</span>
+		   </button>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 50px;">
+                <div class="col">
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input checkbox-2x" id="switch1" onclick="toggle(1);">
+                    <label id='curr1' class="custom-control-label checkbox-2x" for="switch1">Valve 1</label>
                   </div>
                 </div>
                 <div class="col">
                   <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="input1" placeholder="15 Minutes">
                 </div>
             </div>
-               <div class="row">
+            <div class="row" style="margin-top: 50px;">
                 <div class="col">
                   <div class="custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input" id="switch2" onclick="toggle(2);">
-                    <label class="custom-control-label" for="switch2">Valve 2</label>
+                    <label id='curr2' class="custom-control-label" for="switch2">Valve 2</label>
                   </div>
                 </div>
                 <div class="col">
                   <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="input2" placeholder="15 Minutes">
                 </div>
             </div>
-               <div class="row">
+            <div class="row" style="margin-top: 50px;">
                 <div class="col">
                   <div class="custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input" id="switch3" onclick="toggle(3);">
-                    <label class="custom-control-label" for="switch3">Valve 3</label>
+                    <label id='curr3' class="custom-control-label" for="switch3">Valve 3</label>
                   </div>
                 </div>
                 <div class="col">
                   <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" id="input3" placeholder="15 Minutes">
                 </div>
             </div>
-               <div class="row">
+            <div class="row" style="margin-top: 50px;">
                 <div class="col">
                   <div class="custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input" id="switch4" onclick="toggle(4);">
-                    <label class="custom-control-label" for="switch4">Valve 4</label>
+                    <label id='curr4' class="custom-control-label" for="switch4">Valve 4</label>
                   </div>
                 </div>
                 <div class="col">
                   <input type="number" style="width: 150px;" class="input-group input-group-sm mb-3" maxlength=4 id="input4" placeholder="15 Minutes">
                 </div>
             </div>
-
-            </p>
-        </div>
-    </div>
+            <div class="row" style="margin-top: 50px;">
+                <div class="col">
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" checked class="custom-control-input" id="switch5" onclick="toggleRefresh();">
+                    <label id='curr5' class="custom-control-label" for="switch5">AutoRefresh</label>
+                  </div>
+                </div>
+                <div class="col">
+  		  <button type="button" class="btn btn-warning btn-sm" style="width: 150px;">Submit all valves</button>
+                </div>
+            </div>
+    <form>
 </div>
-<script>
-const xmlhttp = new XMLHttpRequest();
 
-xmlhttp.onreadystatechange = function() {
-  if (xmlhttp.readyState==4 && xmlhttp.status==200) {
-    const response = xmlhttp.responseText; //if you need to do something with the returned value
-    console.log(response);
+<script>
+
+let state = {};
+let timer = false;;
+
+function toggleRefresh(){
+   if(timer) {
+	clearInterval(timer);
+   } else {
+        timer = setInterval(updateState, 5000);
+   }
+};
+
+getUrl = function(url, callback)
+{
+  const request = new XMLHttpRequest();
+
+  request.onreadystatechange = function(cb) {
+    if (request.readyState==4 && request.status==200) {
+      const response = request.responseText;
+      callback(null,response);
+    } else {
+      callback(request.status,null);
+    }
   }
+  request.open('GET', url);
+  request.send();
+}
+
+function updateValues(res) {
+   if(!res) return;
+   try {
+      state = JSON.parse(res);
+      let st = document.getElementById('switch6');
+      if(state.online === 'online') {
+	 st.checked = true;
+      } else {
+	 st.checked = false;
+	 // st.removeClass('checked');
+      }
+      document.getElementById('state').innerHTML = 'State : ' + state.online;
+      document.getElementById('batt').innerHTML = Math.floor(state.battery) + "%";
+      for(let i = 1; i < 5; i++){
+          let V="V"+(i-1);
+          let W="V"+(4+i-1);
+          let RV="R"+(i-1);
+          let RW="R"+(4+i-1);
+	  let c="curr"+i;
+	  let s="switch"+i;
+	  let real = 'OFF';
+          if(state.valves[RW] > 0 || state.valves[RV] >0) {
+	     real = 'ON'; 
+             let x = document.getElementById('switch4');
+             document.getElementById(c).innerHTML = `Valve ${i} reported ${real}`;
+	     x.checked = true;
+	     // x.addClass('checked');
+          }
+          if(state.valves[W] > 0) {
+	     let left = state.valves[W] - state.valves.systime;
+             document.getElementById(c).innerHTML = `Valve ${i} (manual scheduled for ${left}m) reported ${real}`;
+          }
+          else if(state.valves[V] > 0) {
+	     let left = state.valves[V] - state.valves.systime;
+             document.getElementById(c).innerHTML = `Valve ${i} (on for ${left}m) reported ${real}`;
+          }
+	  else {
+             document.getElementById(c).innerHTML = `Valve ${i} (off) reported ${real}`;
+             document.getElementById(s).checked = false;
+	  }
+      }
+   } catch(ev) {
+	console.log('no valid json received', ev);
+   }
 }
 
 function toggle(valve) {
@@ -82,15 +170,46 @@ function toggle(valve) {
 	const s = document.getElementById(sid);
 	const loc = window.location.hostname;
 	const protocol = location.protocol;
+	let url;
 	if(s.checked) {
 	   if(!t.value) t.value = 15;
-	   const url = `${protocol}//${loc}/REST?channel=${valve}&min=${t.value}`
-console.log(url);
-	   xmlhttp.open("GET", url, true);
-	   xmlhttp.send();
+	   if (window.location.port) {
+	      url = `${protocol}//${loc}:${window.location.port}/REST?channel=${valve}&min=${t.value}`;
+	   } else {
+	      url = `${protocol}//${loc}/REST?channel=${valve}&min=${t.value}`;
+	   }
+	} else {
+	   if (window.location.port) {
+	      url = `${protocol}//${loc}:${window.location.port}/REST?channel=${valve}&min=1`;
+	   } else {
+	      url = `${protocol}//${loc}/REST?channel=${valve}&min=1`;
+	   }
 	}
-	// console.log(valve, sid, t.value, s.checked);
+	getUrl(url, (err,res) => {
+	   if(!err) {
+               // updateValues(res);
+               updateState(res);
+	   }
+        });
 }
+
+function updateState() {
+	let url;
+	const loc = window.location.hostname;
+	const protocol = location.protocol;
+	if (window.location.port) {
+	    url = `${protocol}//${loc}:${window.location.port}/REST`;
+        } else {
+	    url = `${protocol}//${loc}/REST`;
+	}
+	getUrl(url, (err,res) => {
+	   if(!err) {
+	       updateValues(res);
+	   }
+        });
+}
+updateState();
+toggleRefresh();
 </script>
 </body>
 </html>

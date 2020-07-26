@@ -19,6 +19,20 @@ const weblog = QLog.scope('WEB');
 const wslog = QLog.scope('WS');
 const restlog = QLog.scope('REST');
 
+const binFields = {
+   DAY: 6,
+   TIME_LOW: 8,
+   TIME_HIGH: 9,
+   BUTTONS: 12,
+   BATTERY: 13,
+   STATE: 14
+}
+const states = { 
+   0: 'online',
+   1: 'just offline',
+   2: 'offline for more than 5 minutes'
+}
+
 const wss = new WebSocket.Server({ noServer: true });
 
 const settings = require('./settings.json');
@@ -34,7 +48,41 @@ let state = 0;
 let SM = 0;
 let iv;
 const valves = [0, 0, 0, 0, 0, 0, 0, 0];
-// const valveTimes = [ 0, 0, 0, 0, 0, 0, 0 ];
+const reportedValves = [0, 0, 0, 0, 0, 0, 0, 0];
+let battery = "?";
+let batteryPercent = "?";
+let connectionState = 2;
+
+function dumpLog(id, binState, msg){
+    msg += ' :';
+    let devmsg=`DevID ${id} :`;
+    if (devmsg.length < msg.length) {
+       devmsg.padEnd(msg.length);
+    } else {
+       msg.padEnd(devmsg.length);
+    }
+    weblog.complete(`${msg.padEnd(devmsg.length)} MAC2 MAC1 MAC0 DAY? TIME VALV B/BA ST?? [HUM SENSOR ?]`);
+    weblog.complete(`${devmsg.padEnd(msg.length)} ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
+}
+
+function updateStates(binState){
+    remoteStamp = binState[binFields.TIME_LOW] + (binState[binFields.TIME_HIGH] * 256);
+    timeStamp = remoteStamp;
+    battery = binState[binFields.BATTERY];
+    batteryPercent = battery * 1.4428-268;
+    connectionState = binState[binFields.STATE];
+    let buttons = binState[binFields.BUTTONS];
+    weblog.complete(`Battery is roughly at ${Math.floor(batteryPercent)}%`);
+    reportedValves[0] = buttons & 0x1;
+    reportedValves[1] = buttons & 0x2;
+    reportedValves[2] = buttons & 0x4;
+    reportedValves[3] = buttons & 0x8;
+    reportedValves[4] = buttons & 0x11;
+    reportedValves[5] = buttons & 0x22;
+    reportedValves[6] = buttons & 0x44;
+    reportedValves[7] = buttons & 0x88;
+    weblog.complete(`BUTTONS: ${reportedValves}`);
+}
 
 const server = http.createServer((req, res) => {
     weblog.debug('New request : ', req.url);
@@ -58,15 +106,20 @@ const server = http.createServer((req, res) => {
             for (let i = 0; i < valves.length; i++) {
                 dbg += ` "V${i}": "${valves[i]}",`;
             }
-            dbg += ` "systime": "${timeStamp}"`;
+            for (let i = 0; i < reportedValves.length; i++) {
+                dbg += ` "R${i}": "${reportedValves[i]}",`;
+            }
+            dbg += `"systime": "${timeStamp}"`;
             dbg.replace(/,,,/, '');
+            let gen = ` "online": "${states[connectionState]}",`;
+            gen += ` "battery": "${batteryPercent}"`;
 
-            return res.end(`{ "status": "OK", "valves": { ${dbg} }}`);
+            return res.end(`{ "status": "OK", ${gen}, "valves": { ${dbg} }}`);
         }
         const valve = parseInt(opts.channel, 10);
-        if (opts.min && opts.min > 0) {
+        if (opts.min && opts.min > 0 && valve > 0) {
             restlog.pending(`SET CH ${valve} to ${opts.min} minutes.`);
-            valves[valve] = parseInt(opts.min, 10) + timeStamp;
+            valves[valve-1] = parseInt(opts.min, 10) + timeStamp;
             wslog.pending(`Turning ON channel ${valve} for runtime ${opts.min}`);
             if (online) {
                 const r = msgManualSched(opts.channel, valves[valve]);
@@ -79,9 +132,9 @@ const server = http.createServer((req, res) => {
         } else {
             restlog.pending(`SET CH ${valve} to OFF.`);
             wslog.pending(`Sending an OFF message for valve ${valve}`);
-            // valves[valve];
+            valves[valve-1] = 0;
             if (online) {
-                const r = msgManualSched(valve, 0);
+                const r = msgManualSched(opts.channel, valves[valve]);
                 if (r !== true) {
                     return res.end(`{"status" : "err", "msg": "${r}"`);
                 }
@@ -104,8 +157,8 @@ const server = http.createServer((req, res) => {
         }
 
         // remoteId = channel (00000000, actual macID oder ffffffffff)
-        const remoteId = `${binState[5].toString(16)}${binState[4].toString(16)}${binState[3].toString(16)}` +
-            `${binState[2].toString(16)}${binState[1].toString(16)}${binState[0].toString(16)}`;
+        const remoteId = `${binState[5].toString(16).padStart(2,'0')}${binState[4].toString(16).padStart(2,'0')}${binState[3].toString(16).padStart(2,'0')}` +
+            `${binState[2].toString(16).padStart(2,'0')}${binState[1].toString(16).padStart(2,'0')}${binState[0].toString(16).padStart(2,'0')}`;
         // First message from device
         if (id === '0000000000' || id === 'ffffffffff') {
             weblog.complete(`Received submit for channel ${remoteId} ->  ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
@@ -165,22 +218,27 @@ const server = http.createServer((req, res) => {
             return res.end('OK');
         }
         if (remoteId === 'ffffffffffff') {
-            weblog.complete('Device online with errors, state : MAC2 MAC1 MAC0 STAT TIME V-ID VALV ???? ???? ???? STAT2');
-            weblog.complete(`DevID ${id}                   ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
-            remoteStamp = binState[8] + (binState[9] * 256);
-            online = true;
+            updateStates(binState);
+            if (connectionState === 0) {
+                dumpLog(id, binState, 'Device online (ffffffffffff)');
+                online = true;
+            } else {
+                dumpLog(id, binState, 'Device not online');
+            }
         } else if (remoteId === settings.mac.toLowerCase()) {
-            weblog.complete('Device online, state : MAC2 MAC1 MAC0 STAT TIME V-ID VALV ???? ???? ???? STAT2');
-            weblog.complete(`DevID ${id}       ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
-            remoteStamp = binState[8] + (binState[9] * 256);
-            online = true;
+            updateStates(binState);
+            if (connectionState === 0) {
+                dumpLog(id, binState, 'Device online');
+                online = true;
+            } else {
+                dumpLog(id, binState, 'Device not online');
+            }
         } else if (remoteId === '000000000000') {
             // we got no state buffer from request (usually an --ack
             return res.end('OK');
         } else {
             online = true;
-            weblog.complete('Device unknown state : MAC2 MAC1 MAC0 STAT TIME V-ID VALV ???? ???? ???? STAT2');
-            weblog.complete(`DevID ${id}       ${binState.toString('hex').replace(/(.{4})/g, '$1:').replace(/:$/, '')}`);
+            dumpLog(id, binState, `Device in unknown state ${remoteId}`);
         }
     } else {
         weblog.complete('Ignoring request', req.url);
@@ -346,7 +404,7 @@ function msgManualSched() {
         const t = parseInt(valves[i], 10);
         if (t > timeStamp) {
             dbg += `V${i}:${t - timeStamp} `;
-            buffer.writeUInt16LE(parseInt(t, 10), 2 * i);
+            buffer.writeUInt16LE(parseInt(t, 10), 2 + 2 * i);
         } else {
             dbg += `V${i}:OFF `;
             valves[i] = 0;
