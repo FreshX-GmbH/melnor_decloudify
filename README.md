@@ -112,10 +112,14 @@ Find out the Melnor device IP in your LAN and connect to its web interface via H
 
 Thanks goes to
 
-For the basic idea and to get startet
+Jean-Philippe for the basic idea and to get startet
 
 https://hackaday.io/project/160193-raincloud-de-cloudifier
 
-For the DNS Spoofing and proxying
+also check out his version of the decloudifier
+
+https://github.com/jpjodoin/sunshower
+
+For the DNS Spoofing and proxying example
 
 https://peteris.rocks/blog/dns-proxy-server-in-node-js-with-ui/
