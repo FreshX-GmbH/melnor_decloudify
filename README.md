@@ -69,6 +69,25 @@ Find out the Melnor device IP in your LAN and connect to its web interface via H
 
 < ... full function to be described ... >
 
+# Running DNS Spoofing via dnsmasq
+
+Thanks to @alexose for this hint: An alternative approach that might work better for some folks is to plug the Melnor unit directly into a Raspberry Pi running this application, and then use dnsmasq to redirect ws.pusherapp.com and wifiaquatimer.com.
+
+I was able to do this by following this guide but instead using the following /etc/dnsmasq.conf config:
+
+interface=eth0
+listen-address=172.24.1.1
+bind-interfaces
+server=8.8.8.8
+domain-needed
+bogus-priv
+dhcp-range=172.24.1.50,172.24.1.150,12h
+host-record=ws.pusherapp.com,172.24.1.1
+host-record=wifiaquatimer.com,172.24.1.1
+I then commented out dns.start() in actor.js and ran sudo node actor.js. Requests seem to be coming in properly.
+
+Might be good to support this setup, as I think it's a better approach for those of us with an extra Pi laying around. I used an ancient Pi 1 that was otherwise just gathering dust.
+
 # The handshake
 
 * Step  1: DEV DNS lookup ws.pusherapp.com (PA_Cloud)
