@@ -1,0 +1,10 @@
+{
+	"enabled": true,
+	"port": 3080,
+	"mac": "<YOUR DEV ID>",
+	"valveId": "<4 digit valve ID>",
+	"dnsForwarder": "8.8.8.8",
+	"bindDNS": "192.168.0.1",
+	"myIP": "192.168.0.1",
+	"loglevel": "debug"
+}
