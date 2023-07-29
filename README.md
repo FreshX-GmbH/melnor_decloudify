@@ -89,9 +89,8 @@ host-record=ws.pusherapp.com,172.24.1.1
 host-record=wifiaquatimer.com,172.24.1.1
 ```
 
-I then commented out dns.start() in actor.js and ran sudo node actor.js. Requests seem to be coming in properly.
-
-Might be good to support this setup, as I think it's a better approach for those of us with an extra Pi laying around. I used an ancient Pi 1 that was otherwise just gathering dust.
+~~I then commented out dns.start() in actor.js and ran sudo node actor.js. Requests seem to be coming in properly.~~
+~~Might be good to support this setup, as I think it's a better approach for those of us with an extra Pi laying around.~~ I used an ancient Pi 1 that was otherwise just gathering dust.
 
 # The handshake
 
