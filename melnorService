@@ -1,0 +1,4 @@
+#!/bin/sh
+
+cd /data/melnor_decloudify
+node actor.js

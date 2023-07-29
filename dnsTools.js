@@ -87,6 +87,6 @@ exports.start = function () {
     dnsServer.on('error', err => console.error(err.stack));
     dnsServer.on('socketError', err => console.error(err));
 
-    dnsServer.serve(53);
+    dnsServer.serve(53,settings.bindDNS);
     dnsServer.on('request', handleDNSRequest);
 };

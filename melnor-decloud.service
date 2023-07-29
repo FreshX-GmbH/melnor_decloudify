@@ -1,0 +1,10 @@
+[Unit]
+Description=Melnor decloudify server
+After=network-online.target
+[Service]
+Type=simple
+WorkingDirectory=/data/melnor_decloudify
+ExecStart=/data/melnor_decloudify/melnorService
+
+[Install]
+WantedBy=multi-user.target
