@@ -42,6 +42,8 @@ All fields are mandatory
 	"mac": "<MAC address of you rf device case sensitive and without :>", // find it on the device
 	"myIP": "<ip of the computer running this code>",// needed for the DNS spoofing
 	"valveId": "<four code valve id>",  		 // find it on the sticker of your valve
+	"disableDNS": false,            // disable DNS spoofing completely to use external spoofer (see below)
+	"bindDNS": "192.168.0.1",       // bind DNS server to specific IP instead of 0.0.0.0
 	"dnsForwarder": "8.8.8.8", 			 // which upstream DNS to use
 	"loglevel": "debug"				 // what loglevel to run in (set to info in production)
 }
@@ -75,6 +77,7 @@ Thanks to @alexose for this hint: An alternative approach that might work better
 
 I was able to do this by following this guide but instead using the following /etc/dnsmasq.conf config:
 
+```
 interface=eth0
 listen-address=172.24.1.1
 bind-interfaces
@@ -84,6 +87,8 @@ bogus-priv
 dhcp-range=172.24.1.50,172.24.1.150,12h
 host-record=ws.pusherapp.com,172.24.1.1
 host-record=wifiaquatimer.com,172.24.1.1
+```
+
 I then commented out dns.start() in actor.js and ran sudo node actor.js. Requests seem to be coming in properly.
 
 Might be good to support this setup, as I think it's a better approach for those of us with an extra Pi laying around. I used an ancient Pi 1 that was otherwise just gathering dust.

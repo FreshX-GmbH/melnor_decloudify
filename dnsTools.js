@@ -82,11 +82,15 @@ const handleDNSRequest = function (request, response) {
 
 
 exports.start = function () {
-    dnsServer.on('listening', () => log.success('listening on', dnsServer.address().address, 'port', dnsServer.address().port));
-    dnsServer.on('close', () => console.log('dnsServer closed', dnsServer.address()));
-    dnsServer.on('error', err => console.error(err.stack));
-    dnsServer.on('socketError', err => console.error(err));
+    if (settings.disableDNS === true) {
+        log.info('DNS spoofing disabled. Please use external spoofer (see README).');
+    } else {
+        dnsServer.on('listening', () => log.success('listening on', dnsServer.address().address, 'port', dnsServer.address().port));
+        dnsServer.on('close', () => console.log('dnsServer closed', dnsServer.address()));
+        dnsServer.on('error', err => console.error(err.stack));
+        dnsServer.on('socketError', err => console.error(err));
 
-    dnsServer.serve(53,settings.bindDNS);
-    dnsServer.on('request', handleDNSRequest);
+        dnsServer.serve(53,settings.bindDNS);
+        dnsServer.on('request', handleDNSRequest);
+    }
 };
